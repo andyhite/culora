@@ -126,7 +126,8 @@ poetry run mypy .                     # Type checking
 poetry run pytest                     # Run tests
 poetry run pytest --cov=culora        # Run tests with coverage
 poetry run pytest -v                 # Verbose test output
-poetry run pytest tests/core/        # Run specific test directory
+poetry run pytest tests/unit/services/   # Run service layer tests
+poetry run pytest tests/unit/domain/     # Run domain model tests
 ```
 
 ## Project Structure
@@ -134,13 +135,20 @@ poetry run pytest tests/core/        # Run specific test directory
 ```txt
 culora/
 ├── culora/
-│   ├── cli/           # Typer-based CLI with Rich integration
-│   ├── core/          # Foundation: types, exceptions, logging, configuration
-│   ├── analysis/      # AI model integrations and analysis
-│   ├── selection/     # Selection algorithms and clustering
-│   ├── export/        # Export functionality and formatters
-│   └── utils/         # Shared utilities and type definitions
-├── tests/             # Comprehensive test suite with fixtures
+│   ├── core/          # Foundation: exception hierarchy
+│   │   └── exceptions/ # Modular exception classes (config, device, culora)
+│   ├── domain/        # Domain-driven design models and enums
+│   │   ├── enums/     # Type-safe enums (device types, log levels)
+│   │   └── models/    # Domain models (device, memory, config)
+│   ├── services/      # Service layer (config, device, memory services)
+│   └── utils/         # Shared utilities (logging)
+├── tests/             # Best-practice test organization
+│   ├── conftest.py    # Shared pytest fixtures
+│   ├── helpers/       # Test utilities (factories, assertions, file utils)
+│   ├── mocks/         # Mock implementations (PyTorch, AI models)
+│   ├── fixtures/      # Static test data and configurations
+│   ├── unit/          # Unit tests organized by domain
+│   └── integration/   # Integration and workflow tests
 ├── pyproject.toml     # Poetry configuration with all dependencies
 ├── Makefile          # Development workflow automation
 └── README.md
@@ -148,25 +156,51 @@ culora/
 
 ## Current Implementation
 
-### Core Foundation (`culora/core/`)
+### Domain-Driven Architecture
 
-- **Types System** (`types.py`): Complete enum definitions and type aliases
-- **Exception Hierarchy** (`exceptions.py`): Structured error handling with context
+**Domain Layer** (`culora/domain/`):
+
+- **Enums** (`enums/`): Type-safe enumerations for device types and log levels
+- **Models** (`models/`): Domain models for devices, memory, and configuration
+- **Config Models** (`models/config/`): Pydantic configuration models with full validation
+
+**Service Layer** (`culora/services/`):
+
+- **Config Service** (`config_service.py`): Multi-source configuration management with precedence handling
+- **Device Service** (`device_service.py`): Intelligent hardware detection with CUDA/MPS/CPU support
+- **Memory Service** (`memory_service.py`): Memory management and tracking
+
+**Core Foundation** (`culora/core/`):
+
+- **Exception Hierarchy** (`exceptions/`): Modular exception classes organized by domain (config, device, culora)
+
+**Utilities** (`culora/utils/`):
+
 - **Structured Logging** (`logging.py`): Production-ready JSON logging separate from Rich UI
-- **Configuration System** (`config.py`): Type-safe Pydantic models with comprehensive validation
-- **Configuration Manager** (`config_manager.py`): Multi-source configuration with precedence handling
-- **Device Management** (`device_info.py`, `device_detector.py`, `device_manager.py`): Intelligent hardware detection with CUDA/MPS/CPU support
 
-### Testing Infrastructure (`tests/`)
+### Modern Test Infrastructure (`tests/`)
 
-- **Test Fixtures**: Configuration and logging fixtures for comprehensive testing
-- **Test Suite**: 121 passing tests with 100% code coverage
-- **Quality Assurance**: All tests verify configuration validation, exception handling, and logging functionality
+- **Test Organization**: Industry-standard structure with helpers, mocks, fixtures, unit, and integration directories
+- **Test Helpers** (`helpers/`): Modular utilities including ConfigBuilder factory, AssertionHelpers, and TempFileHelper
+- **Mock Implementations** (`mocks/`): Centralized PyTorch/CUDA mocking with MockContext utility
+- **Static Fixtures** (`fixtures/`): Reusable test data and configuration files
+- **Unit Tests** (`unit/`): Organized by domain (services, domain models) with 255 passing tests
+- **Integration Tests** (`integration/`): End-to-end workflow testing with fixture composition
+- **Comprehensive Coverage**: 255 tests with modern organization and 100% type safety
+
+**Test Structure Benefits:**
+
+- **Maintainability**: Clear separation of test utilities, mocks, and test categories
+- **Reusability**: Modular helpers easily shared across test files (e.g., `from tests.helpers import ConfigBuilder`)
+- **Scalability**: Easy to add new test utilities and organize future AI model tests
+- **Best Practices**: Follows Python testing industry standards with proper imports and organization
 
 ### Development Tooling
 
 - **Dependencies**: All AI model and development tool dependencies configured and updated to latest versions (Python 3.12, Ruff 0.12.5, Black 25.1.0, mypy 1.14.1)
 - **Quality Tools**: Black, isort, Ruff, mypy, pytest with optimal configurations
+- **Architecture**: Clean domain-driven design with service layer pattern
+- **Test Infrastructure**: Industry-standard test organization with helpers, mocks, and fixtures
 - **Automation**: Comprehensive Makefile for development workflow
 
 ## Implementation Plan

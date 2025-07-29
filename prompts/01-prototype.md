@@ -57,13 +57,20 @@ After each implementation task, run the following quality checks:
 ```txt
 culora/
 ├── culora/
-│   ├── cli/           # Typer-based CLI with Rich integration
-│   ├── core/          # Configuration, logging, device management
-│   ├── analysis/      # AI model integrations and analysis components
-│   ├── selection/     # Selection algorithms and clustering
-│   ├── export/        # Export functionality and formatters
-│   └── utils/         # Shared utilities and type definitions
-├── tests/             # Comprehensive test suite
+│   ├── core/          # Foundation: exception hierarchy
+│   │   └── exceptions/ # Modular exception classes (config, device, culora)
+│   ├── domain/        # Domain-driven design models and enums
+│   │   ├── enums/     # Type-safe enums (device types, log levels)
+│   │   └── models/    # Domain models (device, memory, config)
+│   ├── services/      # Service layer (config, device, memory services)
+│   └── utils/         # Shared utilities (logging)
+├── tests/             # Best-practice test organization
+│   ├── conftest.py    # Shared pytest fixtures
+│   ├── helpers/       # Test utilities (factories, assertions, file utils)
+│   ├── mocks/         # Mock implementations (PyTorch, AI models)
+│   ├── fixtures/      # Static test data and configurations
+│   ├── unit/          # Unit tests organized by domain
+│   └── integration/   # Integration and workflow tests
 ├── pyproject.toml     # Poetry configuration with all tools
 └── README.md
 ```
@@ -113,8 +120,6 @@ culora/
 - **Type Safety**: Full mypy compliance with strict mode
 - **Configuration System**: Multi-source precedence (CLI > env > file > defaults)
 
-All core foundation components (types, exceptions, logging, configuration) are production-ready.
-
 ---
 
 ## WEEK 2: Device Management and CLI Foundation
@@ -144,16 +149,34 @@ All core foundation components (types, exceptions, logging, configuration) are p
 - Verify fallback behavior when preferred devices unavailable
 - Test device selection and configuration logic
 
-**✅ TASK 2.1 COMPLETED**: Successfully implemented comprehensive device detection and management system with 121 passing tests and full Python 3.12 compatibility. Key implementation details:
+**✅ TASK 2.1 COMPLETED**: Successfully implemented comprehensive device detection and management system with modern test infrastructure and full Python 3.12 compatibility. Key implementation details:
 
 - **Device Detection**: Robust CUDA GPU detection with memory analysis, Apple Silicon MPS detection, and CPU fallback
-- **Device Information**: Type-safe DeviceInfo models with memory tracking and availability status
+- **Service Architecture**: Clean service layer with DeviceService and MemoryService separation
+- **Domain Models**: Type-safe device and memory models in domain layer
 - **Smart Selection**: Priority-based selection (CUDA > MPS > CPU) with user preference override support
 - **Memory Management**: Memory availability checking and model-specific usage estimation
 - **Rich Integration**: Beautiful device status tables with real-time information display
 - **Comprehensive Testing**: Full test coverage with mocked hardware scenarios and edge cases
 
 All device management functionality is production-ready with proper error handling and logging integration.
+
+**✅ ARCHITECTURE REFACTOR COMPLETED**: Successfully reorganized entire codebase using domain-driven design principles:
+
+- **Domain Layer**: Created `culora/domain/` with type-safe enums and domain models
+- **Service Layer**: Implemented `culora/services/` with config, device, and memory services
+- **Exception Hierarchy**: Modularized exceptions into `culora/core/exceptions/` by domain
+- **Clean Architecture**: Removed unused modules (cli, analysis, selection, export) for focused development
+- **Test Infrastructure**: Restructured tests with industry-standard organization (helpers, mocks, fixtures, unit, integration)
+- **255 Tests**: All tests passing with comprehensive coverage of the new architecture
+
+All core foundation components (types, exceptions, logging, configuration) are production-ready with best-practice test organization:
+
+- **Test Helpers**: Modular utilities in `tests/helpers/` (factories, assertions, file utils)
+- **Mock Implementations**: Centralized PyTorch/CUDA mocks in `tests/mocks/`
+- **Organized Tests**: Unit tests in `tests/unit/` by domain, integration tests in `tests/integration/`
+- **Shared Fixtures**: Common test setup in `tests/conftest.py`
+- **255 Tests**: Comprehensive coverage with modern test organization
 
 ### **Task 2.2: Typer CLI with Rich Integration**
 

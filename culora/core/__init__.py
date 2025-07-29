@@ -1,45 +1,19 @@
-"""Core module for CuLoRA.
+"""Core layer for CuLoRA.
 
-Configuration, logging, and device management functionality.
-
-This module provides the foundational components for the CuLoRA application:
-- Structured logging with file-based JSON output
-- Type-safe Pydantic configuration models
-- Custom exception hierarchy with contextual information
-- Configuration management with multiple source support
+Framework-agnostic core functionality including exceptions, types, and constants.
+This is the foundation layer that other layers depend on.
 """
 
-from .config import CuLoRAConfig
-from .config_manager import ConfigManager, get_config, get_config_manager
-from .device_info import DeviceInfo
-from .device_manager import DeviceManager
 from .exceptions import (
-    ConfigurationError,
+    ConfigError,
     CuLoRAError,
-    DeviceError,
-    ExportError,
-    ProcessingError,
+    InvalidConfigError,
+    MissingConfigError,
 )
-from .logging import CuLoRALogger, get_console, get_logger, setup_logging
-from .types import DeviceType, LogLevel, ProcessingStatus
 
 __all__ = [
-    "ConfigManager",
-    "ConfigurationError",
-    "CuLoRAConfig",
+    "ConfigError",
     "CuLoRAError",
-    "CuLoRALogger",
-    "DeviceError",
-    "DeviceInfo",
-    "DeviceManager",
-    "DeviceType",
-    "ExportError",
-    "LogLevel",
-    "ProcessingError",
-    "ProcessingStatus",
-    "get_config",
-    "get_config_manager",
-    "get_console",
-    "get_logger",
-    "setup_logging",
+    "InvalidConfigError",
+    "MissingConfigError",
 ]

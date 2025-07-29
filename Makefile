@@ -43,7 +43,7 @@ format:
 # Linting
 lint:
 	@echo "Running Ruff linter..."
-	@poetry run ruff check .
+	@poetry run ruff check . --fix
 
 # Type checking
 typecheck:

@@ -93,19 +93,28 @@ make check              # Format + lint + typecheck
 ```text
 culora/
 ├── culora/
-│   ├── cli/           # Typer-based CLI with Rich integration
-│   ├── core/          # Configuration, logging, device management
-│   ├── analysis/      # AI model integrations (planned)
-│   ├── selection/     # Selection algorithms (planned)
-│   ├── export/        # Export functionality (planned)
-│   └── utils/         # Shared utilities (planned)
-├── tests/             # Comprehensive test suite
+│   ├── core/          # Foundation: exception hierarchy
+│   │   └── exceptions/ # Modular exception classes (config, device, culora)
+│   ├── domain/        # Domain-driven design models and enums
+│   │   ├── enums/     # Type-safe enums (device types, log levels)
+│   │   └── models/    # Domain models (device, memory, config)
+│   ├── services/      # Service layer (config, device, memory services)
+│   └── utils/         # Shared utilities (logging)
+├── tests/             # Best-practice test organization
+│   ├── conftest.py    # Shared pytest fixtures
+│   ├── helpers/       # Test utilities (factories, assertions, file utils)
+│   ├── mocks/         # Mock implementations (PyTorch, AI models)
+│   ├── fixtures/      # Static test data and configurations
+│   ├── unit/          # Unit tests organized by domain
+│   └── integration/   # Integration and workflow tests
 ├── prompts/           # Implementation planning documents
 ├── Makefile          # Development automation
 └── pyproject.toml    # Poetry configuration with all tools
 ```
 
 ### Testing
+
+The project follows industry best practices for test organization:
 
 ```bash
 # Run all tests
@@ -114,11 +123,23 @@ make test
 # Run with coverage
 make test-cov
 
-# Run specific test types
-pytest tests/core/                    # Core functionality
-pytest -m unit                        # Unit tests only
+# Run specific test categories
+pytest tests/unit/                    # All unit tests
+pytest tests/integration/             # Integration tests
+pytest tests/unit/services/           # Service layer tests
+pytest tests/unit/domain/             # Domain model tests
+
+# Run with markers
+pytest -m integration                 # Integration tests only
 pytest -m "not slow"                 # Skip slow tests
 ```
+
+**Test Structure Benefits:**
+
+- **Modular Helpers**: Reusable test utilities in `tests/helpers/`
+- **Centralized Mocks**: PyTorch and AI model mocks in `tests/mocks/`
+- **Clean Organization**: Unit and integration tests properly separated
+- **Easy Imports**: Convenient helper imports from `tests.helpers`
 
 ### Configuration
 
@@ -142,7 +163,16 @@ Before submitting changes:
 
 ## Current Status
 
-**Tasks 1.1, 1.2 & 2.1 Completed**: Project foundation with structured logging, configuration system, and device management (121 passing tests, 100% coverage)
+**Tasks 1.1, 1.2 & 2.1 Completed**: Project foundation with domain-driven architecture, service layer, and comprehensive testing (255 passing tests)
+
+**Recent Updates**:
+
+- **Architecture Refactor**: Complete reorganization using domain-driven design with service layer pattern
+- **Module Reorganization**: Removed unused modules (cli, analysis, selection, export) and implemented clean architecture
+- **Exception Hierarchy**: Modular exception classes organized by domain (config, device, culora)
+- **Test Infrastructure Overhaul**: Restructured entire test suite following industry best practices
+- **Modern Test Organization**: Separated helpers, mocks, fixtures, unit, and integration tests
+- **Enhanced Maintainability**: 255 tests now organized with modular utilities and clean imports
 
 **In Development**: CLI interface (Task 2.2), then face analysis, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)
 
