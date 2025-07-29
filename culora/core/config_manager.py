@@ -7,7 +7,7 @@ with support for multiple sources and override precedence.
 import json
 import os
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import yaml
 from pydantic import ValidationError
@@ -27,13 +27,13 @@ class ConfigManager:
     """
 
     def __init__(self) -> None:
-        self._config: Optional[CuLoRAConfig] = None
+        self._config: CuLoRAConfig | None = None
         self._config_sources: dict[str, str] = {}
 
     def load_config(
         self,
-        config_file: Optional[Path] = None,
-        cli_overrides: Optional[dict[str, Any]] = None,
+        config_file: Path | None = None,
+        cli_overrides: dict[str, Any] | None = None,
         env_prefix: str = "CULORA",
     ) -> CuLoRAConfig:
         """Load and validate configuration from multiple sources.
@@ -301,7 +301,7 @@ class ConfigManager:
 
         return config_dict
 
-    def _convert_env_value(self, value: str) -> Union[str, int, float, bool]:
+    def _convert_env_value(self, value: str) -> str | int | float | bool:
         """Convert environment variable string to appropriate type."""
         # Boolean conversion
         if value.lower() in ("true", "false"):

@@ -1,7 +1,5 @@
 """Main CLI entry point for CuLoRA."""
 
-from typing import Optional
-
 import typer
 from rich.console import Console
 
@@ -26,7 +24,7 @@ def version() -> None:
 def curate(
     input_dir: str = typer.Argument(..., help="Input directory containing images"),
     output_dir: str = typer.Argument(..., help="Output directory for curated dataset"),
-    target_count: Optional[int] = typer.Option(
+    target_count: int | None = typer.Option(
         None, "--count", "-c", help="Target number of images to select"
     ),
 ) -> None:

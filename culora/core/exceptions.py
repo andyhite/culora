@@ -4,7 +4,7 @@ This module defines structured error handling with clear categorization
 and contextual information for debugging and user feedback.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class CuLoRAError(Exception):
@@ -23,9 +23,9 @@ class CuLoRAError(Exception):
     def __init__(
         self,
         message: str,
-        error_code: Optional[str] = None,
-        context: Optional[dict[str, Any]] = None,
-        user_message: Optional[str] = None,
+        error_code: str | None = None,
+        context: dict[str, Any] | None = None,
+        user_message: str | None = None,
     ) -> None:
         super().__init__(message)
         self.message = message
@@ -92,7 +92,7 @@ class ImageProcessingError(ProcessingError):
         self,
         image_path: str,
         operation: str,
-        original_error: Optional[Exception] = None,
+        original_error: Exception | None = None,
         **kwargs: Any,
     ) -> None:
         message = f"Failed to process image '{image_path}' during {operation}"

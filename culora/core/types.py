@@ -6,7 +6,7 @@ to ensure type safety and consistency.
 
 import pathlib
 from enum import Enum
-from typing import Final, Union
+from typing import Final
 
 from pydantic import BaseModel
 
@@ -76,7 +76,7 @@ class QualityThreshold(BaseModel):
 
 
 # Type aliases for common types
-FilePath = Union[str, pathlib.Path]
+FilePath = str | pathlib.Path
 ImageTensor = "torch.Tensor"  # Forward reference to avoid torch import
 NumpyArray = "numpy.ndarray"  # Forward reference to avoid numpy import
 

@@ -6,8 +6,9 @@ while keeping user-facing output through Rich console separate.
 
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import structlog
 from rich.console import Console
@@ -23,7 +24,7 @@ class CuLoRALogger:
     and separation from user-facing Rich console output.
     """
 
-    def __init__(self, name: str, context: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, name: str, context: dict[str, Any] | None = None) -> None:
         self.name = name
         self.context = context or {}
         self._logger = structlog.get_logger(name)
@@ -49,7 +50,7 @@ class CuLoRALogger:
         self._logger.critical(message, **self._merge_context(kwargs))
 
     def exception(
-        self, message: str, exc_info: Optional[Exception] = None, **kwargs: Any
+        self, message: str, exc_info: Exception | None = None, **kwargs: Any
     ) -> None:
         """Log exception with full context."""
         context = self._merge_context(kwargs)
@@ -72,7 +73,7 @@ class CuLoRALogger:
 
 def setup_logging(
     log_level: LogLevel = LogLevel.INFO,
-    log_dir: Optional[Path] = None,
+    log_dir: Path | None = None,
     console_output: bool = False,
 ) -> None:
     """Configure structured logging for CuLoRA.

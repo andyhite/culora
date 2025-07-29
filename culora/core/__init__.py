@@ -11,6 +11,8 @@ This module provides the foundational components for the CuLoRA application:
 
 from .config import CuLoRAConfig
 from .config_manager import ConfigManager, get_config, get_config_manager
+from .device_info import DeviceInfo
+from .device_manager import DeviceManager
 from .exceptions import (
     ConfigurationError,
     CuLoRAError,
@@ -28,6 +30,8 @@ __all__ = [
     "CuLoRAError",
     "CuLoRALogger",
     "DeviceError",
+    "DeviceInfo",
+    "DeviceManager",
     "DeviceType",
     "ExportError",
     "LogLevel",

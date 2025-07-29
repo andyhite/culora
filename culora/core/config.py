@@ -5,7 +5,7 @@ for all CuLoRA components.
 """
 
 from pathlib import Path
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field, validator
 
@@ -29,7 +29,7 @@ class DeviceConfig(BaseModel):
         description="Fallback device when preferred device is unavailable",
     )
 
-    memory_limit_mb: Optional[int] = Field(
+    memory_limit_mb: int | None = Field(
         default=None,
         ge=512,
         le=65536,
@@ -217,7 +217,7 @@ class SelectionConfig(BaseModel):
     Configure target distributions, diversity weights, and selection parameters.
     """
 
-    target_count: Optional[int] = Field(
+    target_count: int | None = Field(
         default=None,
         ge=1,
         le=10000,

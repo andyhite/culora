@@ -15,7 +15,7 @@ Intelligently curate image datasets for stable diffusion LoRA training using mul
 
 ### Prerequisites
 
-- Python 3.9 or higher
+- Python 3.12 or higher
 - [Poetry](https://python-poetry.org/) for dependency management
 - Optional: CUDA GPU for faster processing
 
@@ -142,9 +142,9 @@ Before submitting changes:
 
 ## Current Status
 
-**Tasks 1.1 & 1.2 Completed**: Project foundation with structured logging and configuration system (65 passing tests, 100% coverage)
+**Tasks 1.1, 1.2 & 2.1 Completed**: Project foundation with structured logging, configuration system, and device management (121 passing tests, 100% coverage)
 
-**In Development**: Face analysis, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)
+**In Development**: CLI interface (Task 2.2), then face analysis, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)
 
 ## License
 

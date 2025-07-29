@@ -2,7 +2,7 @@
 
 CuLoRA is a sophisticated command-line utility for intelligently curating image datasets specifically for LoRA (Low-Rank Adaptation) training.
 
-### Development Stack
+## Development Stack
 
 - **CLI Framework**: Typer with Rich integration for beautiful terminal output
 - **Configuration**: Pydantic models with full validation
@@ -155,16 +155,17 @@ culora/
 - **Structured Logging** (`logging.py`): Production-ready JSON logging separate from Rich UI
 - **Configuration System** (`config.py`): Type-safe Pydantic models with comprehensive validation
 - **Configuration Manager** (`config_manager.py`): Multi-source configuration with precedence handling
+- **Device Management** (`device_info.py`, `device_detector.py`, `device_manager.py`): Intelligent hardware detection with CUDA/MPS/CPU support
 
 ### Testing Infrastructure (`tests/`)
 
 - **Test Fixtures**: Configuration and logging fixtures for comprehensive testing
-- **Test Suite**: 65 passing tests with 100% code coverage
+- **Test Suite**: 121 passing tests with 100% code coverage
 - **Quality Assurance**: All tests verify configuration validation, exception handling, and logging functionality
 
 ### Development Tooling
 
-- **Dependencies**: All AI model and development tool dependencies configured
+- **Dependencies**: All AI model and development tool dependencies configured and updated to latest versions (Python 3.12, Ruff 0.12.5, Black 25.1.0, mypy 1.14.1)
 - **Quality Tools**: Black, isort, Ruff, mypy, pytest with optimal configurations
 - **Automation**: Comprehensive Makefile for development workflow
 

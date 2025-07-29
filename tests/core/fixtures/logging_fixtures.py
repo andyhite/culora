@@ -3,7 +3,7 @@
 import logging
 from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -30,7 +30,7 @@ class LogCapture:
         """Clear captured records."""
         self.records.clear()
 
-    def get_records(self, level: Optional[str] = None) -> list[dict[str, Any]]:
+    def get_records(self, level: str | None = None) -> list[dict[str, Any]]:
         """Get captured records, optionally filtered by level."""
         if level is None:
             return self.records.copy()
