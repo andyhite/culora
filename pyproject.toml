@@ -1,0 +1,99 @@
+[tool.poetry]
+name = "culora"
+version = "0.1.0"
+description = "A command-line tool for intelligently curating image datasets for LoRA training"
+authors = ["Andrew Hite <andy@andyhite.com>"]
+readme = "README.md"
+packages = [{ include = "culora", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+rich = ">=13.0.0,<13.10.0"
+typer = "^0.16.0"
+pydantic = "^2.10.0"
+# Analysis pipeline dependencies
+imagehash = "^4.3.2"
+opencv-python = "^4.9.0"
+ultralytics = "^8.3.0"
+huggingface_hub = "^0.34.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^25.1.0"
+ruff = "^0.12.7"
+pyright = "^1.1.380"
+pytest = "^8.2.2"
+pytest-cov = "^6.2.1"
+pre-commit = "^4.2.0"
+
+[tool.poetry.scripts]
+culora = "culora.main:app"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "B",  # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "UP", # pyupgrade
+]
+ignore = [
+  "E501", # line too long, handled by black
+  "B008", # do not perform function calls in argument defaults
+  "C901", # too complex
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.pyright]
+defineConstant = { DEBUG = true }
+exclude = ["**/node_modules", "**/__pycache__"]
+include = ["src", "tests"]
+venv = ".venv"
+venvPath = "."
+
+pythonVersion = "3.12"
+pythonPlatform = "All"
+
+typeCheckingMode = "strict"
+
+reportMissingImports = true
+reportMissingTypeStubs = false
+
+# Allow protected method access in test files
+executionEnvironments = [{ root = "tests", reportPrivateUsage = "none" }]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --cov=src --cov-report=term-missing"
