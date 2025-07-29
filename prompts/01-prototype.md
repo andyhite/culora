@@ -72,7 +72,7 @@ culora/
 
 - Core: typer[rich], rich, pydantic, structlog
 - Image processing: pillow, numpy, opencv-python
-- AI models: insightface, mediapipe, imquality, imagehash, transformers, torch, sentence-transformers, scikit-learn
+- AI models: insightface, mediapipe, piq, imagehash, transformers, torch, sentence-transformers, scikit-learn
 - Development: black, isort, mypy, ruff, pytest, pytest-cov, pytest-mock
 
 ### **Task 1.2: Structured Logging and Configuration Foundation**
@@ -262,7 +262,7 @@ culora/
 
 **Requirements**:
 
-- Integrate BRISQUE algorithm through imquality library
+- Integrate BRISQUE algorithm through PIQ (PyTorch Image Quality) library
 - Handle BRISQUE calculation errors gracefully
 - Provide configurable quality thresholds for filtering
 - Optimize BRISQUE processing for batch operations

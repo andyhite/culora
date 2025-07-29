@@ -16,7 +16,7 @@ CuLoRA is a sophisticated command-line utility for intelligently curating image 
 - **Moondream**: Vision-language model for composition classification
 - **CLIP**: Semantic embeddings for composition diversity
 - **MediaPipe**: Pose estimation and analysis
-- **BRISQUE**: Perceptual quality assessment
+- **BRISQUE**: Perceptual quality assessment using PIQ (PyTorch Image Quality) library
 
 ### Development Stack
 
@@ -64,16 +64,50 @@ CuLoRA is a sophisticated command-line utility for intelligently curating image 
 - **Testing**: Comprehensive pytest suite with >90% coverage
 - **Documentation**: Google-style docstrings throughout
 
-## Quality Checks Workflow
+## Development Workflow
 
-After each implementation task:
+### Quick Start
 
 ```bash
-black .        # Format code
-isort .        # Sort imports  
-ruff check .   # Lint for issues
-mypy .         # Type checking
-pytest         # Run tests
+# Setup development environment
+make dev-setup
+
+# Run all quality checks and tests
+make all
+
+# Show all available commands
+make help
+```
+
+### Common Development Tasks
+
+Use the provided Makefile for streamlined development:
+
+```bash
+# Code Quality
+make format      # Format code with Black and sort imports with isort
+make lint        # Run Ruff linter
+make typecheck   # Run mypy type checking
+make check       # Run all quality checks (format + lint + typecheck)
+
+# Testing
+make test        # Run pytest test suite
+make test-cov    # Run tests with coverage report
+
+# Maintenance
+make clean       # Remove cache files and build artifacts
+make all         # Complete workflow (format + check + test)
+```
+
+### Manual Commands (if needed)
+
+```bash
+# Individual tool commands
+poetry run black .        # Format code
+poetry run isort .        # Sort imports  
+poetry run ruff check .   # Lint for issues
+poetry run mypy .         # Type checking
+poetry run pytest        # Run tests
 ```
 
 ## Project Structure
