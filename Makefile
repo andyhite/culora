@@ -26,7 +26,7 @@ help:
 # Installation and setup
 install:
 	@echo "Installing dependencies with Poetry..."
-	poetry install
+	@poetry install
 
 dev-setup: install
 	@echo "Development environment setup complete!"
@@ -35,20 +35,20 @@ dev-setup: install
 # Code formatting
 format:
 	@echo "Formatting code with Black..."
-	poetry run black .
+	@poetry run black .
 	@echo "Sorting imports with isort..."
-	poetry run isort .
+	@poetry run isort .
 	@echo "Code formatting complete!"
 
 # Linting
 lint:
 	@echo "Running Ruff linter..."
-	poetry run ruff check .
+	@poetry run ruff check .
 
 # Type checking
 typecheck:
 	@echo "Running mypy type checking..."
-	poetry run mypy .
+	@poetry run mypy .
 
 # Combined quality checks
 check: format lint typecheck
@@ -57,22 +57,22 @@ check: format lint typecheck
 # Testing
 test:
 	@echo "Running pytest test suite..."
-	poetry run pytest
+	@poetry run pytest
 
 test-cov:
 	@echo "Running tests with coverage..."
-	poetry run pytest --cov=culora --cov-report=html --cov-report=term
+	@poetry run pytest --cov=culora --cov-report=html --cov-report=term
 
 # Maintenance
 clean:
 	@echo "Cleaning cache files and build artifacts..."
-	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
-	find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
-	find . -type f -name "*.pyc" -delete 2>/dev/null || true
-	find . -type f -name ".coverage" -delete 2>/dev/null || true
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
+	@find . -type f -name ".coverage" -delete 2>/dev/null || true
 	@echo "Clean complete!"
 
 # Complete workflow
@@ -86,8 +86,8 @@ all: format check test
 # CLI commands for quick access
 run-version:
 	@echo "Running CuLoRA version command..."
-	poetry run culora version
+	@poetry run culora version
 
 run-help:
 	@echo "Showing CuLoRA help..."
-	poetry run culora --help
+	@poetry run culora --help

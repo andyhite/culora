@@ -1,12 +1,14 @@
 # CuLoRA - Advanced LoRA Dataset Curation Utility
 
-CuLoRA is a sophisticated command-line utility for intelligently curating image datasets specifically for LoRA (Low-Rank Adaptation) training. The system combines multiple AI models with advanced selection algorithms to automatically identify and select the best images from large datasets for optimal training outcomes.
+CuLoRA is a sophisticated command-line utility for intelligently curating image datasets specifically for LoRA (Low-Rank Adaptation) training.
 
-## Project Overview
+### Development Stack
 
-- **Purpose**: Automated curation of high-quality image datasets for stable diffusion model training
-- **Architecture**: Modern Python CLI application with comprehensive AI analysis pipeline
-- **Target**: Process 100+ image datasets with 2-10 images/second processing speed
+- **CLI Framework**: Typer with Rich integration for beautiful terminal output
+- **Configuration**: Pydantic models with full validation
+- **Logging**: Structured logging with structlog
+- **Quality Tools**: Black, isort, Ruff, mypy, pytest
+- **Dependency Management**: Poetry
 
 ## Core Technologies
 
@@ -18,39 +20,7 @@ CuLoRA is a sophisticated command-line utility for intelligently curating image 
 - **MediaPipe**: Pose estimation and analysis
 - **BRISQUE**: Perceptual quality assessment using PIQ (PyTorch Image Quality) library
 
-### Development Stack
-
-- **CLI Framework**: Typer with Rich integration for beautiful terminal output
-- **Configuration**: Pydantic models with full validation
-- **Logging**: Structured logging with structlog
-- **Quality Tools**: Black, isort, Ruff, mypy, pytest
-- **Dependency Management**: Poetry
-
-## Key Features
-
-### Analysis Pipeline
-
-- **Face Analysis**: Multi-face detection with identity matching using reference images
-- **Quality Assessment**: Technical metrics (sharpness, contrast, brightness) + BRISQUE perceptual scoring
-- **Composition Analysis**: Shot type classification, scene detection, lighting assessment
-- **Pose Diversity**: Body landmark detection for pose variation optimization
-- **Duplicate Detection**: Perceptual hash-based duplicate identification and removal
-
-### Selection Algorithms
-
-- **Multi-Criteria Selection**: Balances quality, diversity, and target distribution
-- **Clustering-Based Diversity**: K-means clustering on pose vectors and CLIP embeddings
-- **Quality-Weighted Filtering**: Configurable thresholds with fallback strategies
-- **Target Distribution Management**: Flexible composition category distribution
-
-### Export System
-
-- **Training-Optimized Output**: Sequential naming (01.jpg, 02.jpg) for training workflows
-- **Comprehensive Metadata**: JSON export with all analysis results
-- **Visualization Options**: Face bounding box overlays
-- **Multiple Copy Modes**: Selected images only or all images with selection status
-
-## Hardware Support
+### Hardware Support
 
 - **CUDA GPUs**: Optimized for NVIDIA graphics cards with memory analysis
 - **Apple Silicon**: MPS backend support for M1/M2 Macs
@@ -69,45 +39,94 @@ CuLoRA is a sophisticated command-line utility for intelligently curating image 
 ### Quick Start
 
 ```bash
-# Setup development environment
+# Setup development environment (first time only)
 make dev-setup
 
-# Run all quality checks and tests
+# Run complete development workflow
 make all
 
 # Show all available commands
 make help
 ```
 
-### Common Development Tasks
+### Makefile Commands
 
-Use the provided Makefile for streamlined development:
+The project includes a comprehensive Makefile for streamlined development. All commands use Poetry to manage dependencies and virtual environments.
+
+#### **Setup Commands**
 
 ```bash
-# Code Quality
-make format      # Format code with Black and sort imports with isort
-make lint        # Run Ruff linter
-make typecheck   # Run mypy type checking
-make check       # Run all quality checks (format + lint + typecheck)
-
-# Testing
-make test        # Run pytest test suite
-make test-cov    # Run tests with coverage report
-
-# Maintenance
-make clean       # Remove cache files and build artifacts
-make all         # Complete workflow (format + check + test)
+make install     # Install dependencies with Poetry
+make dev-setup   # Complete development environment setup (includes install)
 ```
 
-### Manual Commands (if needed)
+#### **Code Quality Commands**
 
 ```bash
-# Individual tool commands
-poetry run black .        # Format code
-poetry run isort .        # Sort imports  
-poetry run ruff check .   # Lint for issues
-poetry run mypy .         # Type checking
-poetry run pytest        # Run tests
+make format      # Format code with Black and sort imports with isort
+make lint        # Run Ruff linter for code issues
+make typecheck   # Run mypy type checking
+make check       # Run all quality checks (format + lint + typecheck)
+```
+
+#### **Testing Commands**
+
+```bash
+make test        # Run pytest test suite
+make test-cov    # Run tests with HTML and terminal coverage reports
+```
+
+#### **Maintenance Commands**
+
+```bash
+make clean       # Remove cache files and build artifacts (__pycache__, .pytest_cache, etc.)
+make all         # Complete workflow: format + check + test
+```
+
+#### **Recommended Development Workflow**
+
+1. **Initial Setup** (one time):
+
+   ```bash
+   make dev-setup
+   ```
+
+2. **Before Committing Changes**:
+
+   ```bash
+   make all
+   ```
+
+   This runs formatting, linting, type checking, and tests in sequence.
+
+3. **During Development** (iterative):
+
+   ```bash
+   make check    # Quick quality checks without tests
+   make test     # Run tests when needed
+   ```
+
+4. **Troubleshooting**:
+
+   ```bash
+   make clean    # Clear caches if experiencing issues
+   make help     # Show all available commands
+   ```
+
+### Direct Poetry Commands (if needed)
+
+If you prefer to run tools directly or need custom options:
+
+```bash
+# Development tools
+poetry run black .                    # Format code
+poetry run isort .                    # Sort imports  
+poetry run ruff check .               # Lint for issues
+poetry run mypy .                     # Type checking
+poetry run pytest                     # Run tests
+poetry run pytest --cov=culora        # Run tests with coverage
+poetry run pytest -v                 # Verbose test output
+poetry run pytest tests/core/        # Run specific test directory
 ```
 
 ## Project Structure
@@ -116,24 +135,39 @@ poetry run pytest        # Run tests
 culora/
 ├── culora/
 │   ├── cli/           # Typer-based CLI with Rich integration
-│   ├── core/          # Configuration, logging, device management
+│   ├── core/          # Foundation: types, exceptions, logging, configuration
 │   ├── analysis/      # AI model integrations and analysis
 │   ├── selection/     # Selection algorithms and clustering
 │   ├── export/        # Export functionality and formatters
 │   └── utils/         # Shared utilities and type definitions
-├── tests/             # Comprehensive test suite
-├── pyproject.toml     # Poetry configuration
+├── tests/             # Comprehensive test suite with fixtures
+├── pyproject.toml     # Poetry configuration with all dependencies
+├── Makefile          # Development workflow automation
 └── README.md
 ```
 
-## Detailed Implementation Plan
+## Current Implementation
 
-For comprehensive implementation details, task breakdowns, and technical specifications, see [@prompts/01-prototype.md](prompts/01-prototype.md).
+### Core Foundation (`culora/core/`)
 
-The implementation plan covers:
+- **Types System** (`types.py`): Complete enum definitions and type aliases
+- **Exception Hierarchy** (`exceptions.py`): Structured error handling with context
+- **Structured Logging** (`logging.py`): Production-ready JSON logging separate from Rich UI
+- **Configuration System** (`config.py`): Type-safe Pydantic models with comprehensive validation
+- **Configuration Manager** (`config_manager.py`): Multi-source configuration with precedence handling
 
-- 8-week development timeline
-- Task-by-task requirements and deliverables
-- Testing strategies for each component
-- Performance benchmarks and success criteria
-- Modern Python development workflow integration
+### Testing Infrastructure (`tests/`)
+
+- **Test Fixtures**: Configuration and logging fixtures for comprehensive testing
+- **Test Suite**: 65 passing tests with 100% code coverage
+- **Quality Assurance**: All tests verify configuration validation, exception handling, and logging functionality
+
+### Development Tooling
+
+- **Dependencies**: All AI model and development tool dependencies configured
+- **Quality Tools**: Black, isort, Ruff, mypy, pytest with optimal configurations
+- **Automation**: Comprehensive Makefile for development workflow
+
+## Implementation Plan
+
+For comprehensive implementation details and task breakdowns, see [@prompts/01-prototype.md](prompts/01-prototype.md).

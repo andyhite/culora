@@ -16,10 +16,11 @@ culora = "culora.cli.main:app"
 [tool.poetry.dependencies]
 python = "^3.9"
 # Core dependencies
-typer = { extras = ["rich"], version = "^0.12.0" }
-rich = "^13.7.0"
+typer = { extras = ["rich"], version = "^0.16.0" }
+rich = "^14.1.0"
 pydantic = "^2.5.0"
-structlog = "^23.2.0"
+structlog = "^25.4.0"
+pyyaml = "^6.0"
 
 # Image processing
 pillow = "^10.1.0"
@@ -38,18 +39,19 @@ scikit-learn = "^1.3.0"
 
 [tool.poetry.group.dev.dependencies]
 # Code quality
-black = "^23.11.0"
-isort = "^5.12.0"
+black = "^25.1.0"
+isort = "^6.0.1"
 mypy = "^1.7.0"
-ruff = "^0.1.6"
+ruff = "^0.12.5"
 
 # Testing
-pytest = "^7.4.0"
-pytest-cov = "^4.1.0"
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
 pytest-mock = "^3.12.0"
 
 # Type stubs
 types-pillow = "^10.1.0"
+types-pyyaml = "^6.0.12.20250516"
 
 [tool.black]
 line-length = 88
@@ -104,6 +106,8 @@ ignore_missing_imports = true
 [tool.ruff]
 target-version = "py39"
 line-length = 88
+
+[tool.ruff.lint]
 select = [
     "E",      # pycodestyle errors
     "W",      # pycodestyle warnings
@@ -125,7 +129,7 @@ ignore = [
     "ARG002", # Unused method argument
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/**/*" = ["TID252"]
 
 [tool.pytest.ini_options]
