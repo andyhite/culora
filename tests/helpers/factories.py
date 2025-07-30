@@ -4,7 +4,13 @@ from typing import Any
 
 from culora.domain.enums import LogLevel
 from culora.domain.enums.device_types import DeviceType
-from culora.domain.models import CuLoRAConfig, DeviceConfig, ImageConfig, LoggingConfig
+from culora.domain.models import (
+    CuLoRAConfig,
+    DeviceConfig,
+    FaceAnalysisConfig,
+    ImageConfig,
+    LoggingConfig,
+)
 
 
 class ConfigBuilder:
@@ -14,6 +20,7 @@ class ConfigBuilder:
         self._device_type = DeviceType.CPU
         self._log_level = LogLevel.INFO
         self._image_config: ImageConfig | None = None
+        self._face_config: FaceAnalysisConfig | None = None
 
     def with_device(self, device_type: DeviceType) -> "ConfigBuilder":
         """Set the device type."""
@@ -30,16 +37,35 @@ class ConfigBuilder:
         self._image_config = image_config
         return self
 
+    def with_face_config(self, face_config: FaceAnalysisConfig) -> "ConfigBuilder":
+        """Set the face analysis configuration."""
+        self._face_config = face_config
+        return self
+
     def build(self) -> CuLoRAConfig:
         """Build the configuration."""
         device_config = DeviceConfig(preferred_device=self._device_type)
         logging_config = LoggingConfig(log_level=self._log_level)
 
-        if self._image_config is not None:
+        # Build config with required fields and optionally add others
+        if self._image_config is not None and self._face_config is not None:
             return CuLoRAConfig(
                 device=device_config,
                 logging=logging_config,
                 images=self._image_config,
+                faces=self._face_config,
+            )
+        elif self._image_config is not None:
+            return CuLoRAConfig(
+                device=device_config,
+                logging=logging_config,
+                images=self._image_config,
+            )
+        elif self._face_config is not None:
+            return CuLoRAConfig(
+                device=device_config,
+                logging=logging_config,
+                faces=self._face_config,
             )
         else:
             return CuLoRAConfig(

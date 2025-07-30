@@ -505,14 +505,21 @@ def get_image_service() -> ImageService:
 
     Returns:
         Global ImageService instance
-
-    Raises:
-        ImageServiceError: If service has not been initialized
     """
+    global _image_service
     if _image_service is None:
-        raise ImageServiceError(
-            "ImageService not initialized. Call initialize_image_service() first."
-        )
+        from culora.services import get_config_service
+
+        config_service = get_config_service()
+
+        # Load default config if not already loaded
+        try:
+            config = config_service.get_config()
+        except Exception:
+            config = config_service.load_config()
+
+        _image_service = ImageService(config)
+
     return _image_service
 
 

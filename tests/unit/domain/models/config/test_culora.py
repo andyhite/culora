@@ -92,6 +92,21 @@ class TestCuLoRAConfig:
                 "skip_hidden_files": True,
                 "progress_update_interval": 10,
             },
+            "faces": {
+                "model_name": "buffalo_l",
+                "model_cache_dir": str(Path.home() / ".culora" / "models"),
+                "confidence_threshold": 0.5,
+                "max_faces_per_image": 10,
+                "device_preference": "auto",
+                "batch_size": 8,
+                "extract_embeddings": True,
+                "extract_landmarks": True,
+                "extract_attributes": False,
+                "embedding_size": 512,
+                "normalize_embeddings": True,
+                "enable_model_caching": True,
+                "memory_optimization": True,
+            },
         }
         assert dumped == expected
 

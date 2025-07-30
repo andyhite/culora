@@ -161,16 +161,18 @@ culora/
 **Domain Layer** (`culora/domain/`):
 
 - **Enums** (`enums/`): Type-safe enumerations for device types and log levels
-- **Models** (`models/`): Domain models for devices, memory, configuration, and images
-- **Config Models** (`models/config/`): Pydantic configuration models with full validation including ImageConfig
+- **Models** (`models/`): Domain models for devices, memory, configuration, images, and faces
+- **Config Models** (`models/config/`): Pydantic configuration models with full validation including ImageConfig and FaceAnalysisConfig
 - **Image Models** (`models/image.py`): Comprehensive image metadata and processing result models
+- **Face Models** (`models/face.py`): Face detection models with bounding boxes, embeddings, and batch processing results
 
 **Service Layer** (`culora/services/`):
 
-- **Config Service** (`config_service.py`): Multi-source configuration management with precedence handling and property-based source tracking
+- **Config Service** (`config_service.py`): Multi-source configuration management with Typer app directory integration and property-based source tracking
 - **Device Service** (`device_service.py`): Intelligent hardware detection with CUDA/MPS/CPU support
 - **Memory Service** (`memory_service.py`): Memory management and tracking
 - **Image Service** (`image_service.py`): Comprehensive image loading, directory scanning, and batch processing with validation and metadata extraction
+- **Face Analysis Service** (`face_analysis_service.py`): InsightFace integration for face detection, embedding extraction, and landmark analysis
 
 **Core Foundation** (`culora/core/`):
 
@@ -179,13 +181,14 @@ culora/
 **CLI Layer** (`culora/cli/`):
 
 - **Application** (`app.py`): Main Typer application with global error handling
-- **Commands** (`commands/`): Modular command implementations (config, device, images)
+- **Commands** (`commands/`): Modular command implementations (config, device, images, faces)
 - **Display** (`display/`): Rich console components and theming
 - **Validation** (`validation/`): CLI argument validators with proper error handling
 
 **Utilities** (`culora/utils/`):
 
 - **Structured Logging** (`logging.py`): Production-ready JSON logging separate from Rich UI
+- **App Directory Management** (`app_dir.py`): Cross-platform Typer app directory utilities for config, cache, and model storage
 
 ### Modern Test Infrastructure (`tests/`)
 
@@ -193,9 +196,9 @@ culora/
 - **Test Helpers** (`helpers/`): Modular utilities including ConfigBuilder factory, AssertionHelpers, TempFileHelper, and ImageFixtures
 - **Mock Implementations** (`mocks/`): Centralized PyTorch/CUDA mocking with MockContext utility
 - **Static Fixtures** (`fixtures/`): Reusable test data and configuration files
-- **Unit Tests** (`unit/`): Organized by domain (services, domain models, CLI) with 397 passing tests
+- **Unit Tests** (`unit/`): Organized by domain (services, domain models, CLI) with comprehensive coverage including face analysis
 - **Integration Tests** (`integration/`): End-to-end workflow testing including full CLI integration
-- **Comprehensive Coverage**: 397 tests with modern organization and 100% type safety
+- **Comprehensive Coverage**: Modern test organization with 100% type safety
 
 **Test Structure Benefits:**
 

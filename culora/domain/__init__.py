@@ -6,10 +6,14 @@ Only depends on the core layer.
 
 from .enums import DeviceType
 from .models import (
+    BatchFaceAnalysisResult,
     BatchLoadResult,
     CuLoRAConfig,
     Device,
     DirectoryScanResult,
+    FaceAnalysisConfig,
+    FaceAnalysisResult,
+    FaceDetection,
     ImageConfig,
     ImageLoadResult,
     ImageMetadata,
@@ -17,11 +21,15 @@ from .models import (
 )
 
 __all__ = [
+    "BatchFaceAnalysisResult",
     "BatchLoadResult",
     "CuLoRAConfig",
     "Device",
     "DeviceType",
     "DirectoryScanResult",
+    "FaceAnalysisConfig",
+    "FaceAnalysisResult",
+    "FaceDetection",
     "ImageConfig",
     "ImageLoadResult",
     "ImageMetadata",

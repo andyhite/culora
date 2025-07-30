@@ -6,9 +6,15 @@ import typer
 
 from culora.cli.commands.config import config_app
 from culora.cli.commands.device import device_app
+from culora.cli.commands.faces import faces_app
 from culora.cli.commands.images import images_app
 from culora.cli.display.console import console
 from culora.core import ConfigError, CuLoRAError
+from culora.services.config_service import get_config_service
+from culora.services.device_service import get_device_service
+from culora.services.face_analysis_service import get_face_analysis_service
+from culora.services.image_service import get_image_service
+from culora.services.memory_service import get_memory_service
 
 # Create main Typer app
 app = typer.Typer(
@@ -23,6 +29,7 @@ app = typer.Typer(
 app.add_typer(config_app, name="config", help="Configuration management")
 app.add_typer(device_app, name="device", help="Device information and management")
 app.add_typer(images_app, name="images", help="Image loading and processing")
+app.add_typer(faces_app, name="faces", help="Face detection and analysis")
 
 
 @app.callback()
@@ -41,8 +48,21 @@ def main(
         console.info("CuLoRA v0.1.0")
         raise typer.Exit(0)
 
-    # If no subcommand was invoked, show help
-    if ctx.invoked_subcommand is None:
+    # Initialize global services if a subcommand will be invoked
+    if ctx.invoked_subcommand is not None:
+        try:
+            # Initialize all services using consistent get_*_service pattern
+            get_config_service()
+            get_device_service()
+            get_memory_service()
+            get_image_service()
+            get_face_analysis_service()
+
+        except Exception as e:
+            console.error(f"Failed to initialize services: {e}")
+            raise typer.Exit(1) from e
+    else:
+        # If no subcommand was invoked, show help
         console.print(ctx.get_help())
         raise typer.Exit(0)
 

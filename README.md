@@ -53,6 +53,11 @@ poetry run culora images validate /path/to/images # Validate all images
 poetry run culora images info /path/to/image.jpg  # Show image metadata
 poetry run culora images formats                  # List supported formats
 
+# Face detection and analysis
+poetry run culora faces detect /path/to/images    # Detect faces in directory
+poetry run culora faces analyze /path/to/image.jpg # Analyze single image faces
+poetry run culora faces models                    # List available face models
+
 # Future: Curate images (in development)
 # poetry run culora curate input_folder output_folder --count 100
 ```
@@ -105,16 +110,16 @@ make check              # Format + lint + typecheck
 culora/
 ├── culora/
 │   ├── cli/           # CLI layer with Typer + Rich
-│   │   ├── commands/  # Command implementations (config, device, images)
+│   │   ├── commands/  # Command implementations (config, device, images, faces)
 │   │   ├── display/   # Rich console components and theming
 │   │   └── validation/ # CLI argument validators
 │   ├── core/          # Foundation: exception hierarchy
 │   │   └── exceptions/ # Modular exception classes (config, device, culora)
 │   ├── domain/        # Domain-driven design models and enums
 │   │   ├── enums/     # Type-safe enums (device types, log levels)
-│   │   └── models/    # Domain models (device, memory, config, images)
-│   ├── services/      # Service layer (config, device, memory, image services)
-│   └── utils/         # Shared utilities (logging)
+│   │   └── models/    # Domain models (device, memory, config, images, faces)
+│   ├── services/      # Service layer (config, device, memory, image, face services)
+│   └── utils/         # Shared utilities (logging, app directories)
 ├── tests/             # Best-practice test organization
 │   ├── conftest.py    # Shared pytest fixtures
 │   ├── helpers/       # Test utilities (factories, assertions, file utils)
@@ -178,10 +183,17 @@ Before submitting changes:
 
 ## Current Status
 
-**Tasks 1.1, 1.2, 2.1, 2.2 & 2.3 Completed**: Project foundation with domain-driven architecture, service layer, modern CLI, image processing infrastructure, and comprehensive testing (397 passing tests)
+**Tasks 1.1, 1.2, 2.1, 2.2, 2.3 & 3.1 Completed**: Project foundation with domain-driven architecture, service layer, modern CLI, image processing infrastructure, face analysis system, and comprehensive testing.
 
 **Recent Updates**:
 
+- **Task 3.1 Completion**: Full face detection and analysis system with InsightFace integration
+- **Face Analysis Service**: Production-ready FaceAnalysisService with device optimization and batch processing
+- **Face CLI Commands**: Complete face analysis commands (detect, analyze, models) with Rich-formatted output
+- **Service Pattern Standardization**: All services now use consistent `get_*_service()` auto-initializing pattern
+- **Third-Party Integration**: Robust InsightFace and onnxruntime integration with output suppression
+- **App Directory Management**: Cross-platform Typer app directory utilities for config and model storage
+- **Configuration Simplification**: Single app directory location for all configuration and cache files
 - **Task 2.3 Completion**: Complete image loading and directory processing service with batch processing, validation, and metadata extraction
 - **Image CLI Commands**: Full image management commands (scan, validate, info, formats) with Rich-formatted output
 - **Configuration Enhancement**: Added ImageConfig with comprehensive validation and environment variable support
@@ -192,10 +204,10 @@ Before submitting changes:
 - **CLI Implementation**: Complete Typer-based CLI with Rich integration, comprehensive validation, and beautiful output
 - **Test Infrastructure Overhaul**: Restructured entire test suite following industry best practices
 - **Modern Test Organization**: Separated helpers, mocks, fixtures, unit, and integration tests
-- **Enhanced Maintainability**: 397 tests now organized with modular utilities and clean imports
+- **Enhanced Maintainability**: Comprehensive test coverage with modular utilities and clean imports
 - **ConfigService Refactoring**: Eliminated duplicate state tracking with property-based approach
 
-**In Development**: Face analysis, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)
+**In Development**: Reference image matching, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)
 
 ## License
 

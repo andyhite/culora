@@ -19,15 +19,12 @@ from culora.core import (
 )
 from culora.domain import CuLoRAConfig
 from culora.utils import get_logger
+from culora.utils.app_dir import ensure_app_directories, get_default_config_file
 
 logger = get_logger(__name__)
 
-# Default config file locations
-DEFAULT_CONFIG_PATHS = [
-    Path.home() / ".config" / "culora" / "config.yaml",
-    Path.home() / ".culora.yaml",
-    Path.cwd() / "culora.yaml",
-]
+# Default config file location (app directory only)
+DEFAULT_CONFIG_PATH = get_default_config_file()
 
 
 class ConfigService:
@@ -42,6 +39,9 @@ class ConfigService:
         self._config_file: Path | None = None
         self._env_loaded: bool = False
         self._cli_loaded: bool = False
+
+        # Ensure app directories exist
+        ensure_app_directories()
 
     def load_config(
         self,
@@ -431,6 +431,14 @@ class ConfigService:
             "IMAGES_MAX_FILE_SIZE": ["images", "max_file_size"],
             "IMAGES_RECURSIVE_SCAN": ["images", "recursive_scan"],
             "IMAGES_MAX_SCAN_DEPTH": ["images", "max_scan_depth"],
+            "FACES_MODEL_NAME": ["faces", "model_name"],
+            "FACES_CONFIDENCE_THRESHOLD": ["faces", "confidence_threshold"],
+            "FACES_MAX_FACES_PER_IMAGE": ["faces", "max_faces_per_image"],
+            "FACES_DEVICE_PREFERENCE": ["faces", "device_preference"],
+            "FACES_BATCH_SIZE": ["faces", "batch_size"],
+            "FACES_EXTRACT_EMBEDDINGS": ["faces", "extract_embeddings"],
+            "FACES_EXTRACT_LANDMARKS": ["faces", "extract_landmarks"],
+            "FACES_EXTRACT_ATTRIBUTES": ["faces", "extract_attributes"],
             "QUALITY_BRISQUE": ["quality_assessment", "enable_brisque"],
             "QUALITY_TECHNICAL": ["quality_assessment", "enable_technical_metrics"],
             "SELECTION_TARGET_COUNT": ["selection", "target_count"],
@@ -536,7 +544,7 @@ class ConfigService:
         return CuLoRAConfig.from_dict(config_dict)
 
     def _find_config_file(self, provided_file: Path | None) -> Path | None:
-        """Find configuration file using provided path or defaults.
+        """Find configuration file using provided path or default app directory.
 
         Args:
             provided_file: Explicitly provided config file path
@@ -547,13 +555,12 @@ class ConfigService:
         if provided_file:
             return provided_file
 
-        # Check default locations
-        for default_path in DEFAULT_CONFIG_PATHS:
-            if default_path.exists():
-                logger.debug("Found default config file", path=str(default_path))
-                return default_path
+        # Check default app directory location
+        if DEFAULT_CONFIG_PATH.exists():
+            logger.debug("Found default config file", path=str(DEFAULT_CONFIG_PATH))
+            return DEFAULT_CONFIG_PATH
 
-        logger.debug("No config file found in default locations")
+        logger.debug("No config file found in app directory")
         return None
 
     def _resolve_config_file(self, provided_file: Path | None) -> Path:
@@ -576,8 +583,8 @@ class ConfigService:
         if self._config_file:
             return self._config_file
 
-        # Use first default location
-        default_file = DEFAULT_CONFIG_PATHS[0]
+        # Use default app directory location
+        default_file = DEFAULT_CONFIG_PATH
         default_file.parent.mkdir(parents=True, exist_ok=True)
         logger.info("Creating default config file", path=str(default_file))
         return default_file
