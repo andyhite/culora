@@ -161,14 +161,16 @@ culora/
 **Domain Layer** (`culora/domain/`):
 
 - **Enums** (`enums/`): Type-safe enumerations for device types and log levels
-- **Models** (`models/`): Domain models for devices, memory, and configuration
-- **Config Models** (`models/config/`): Pydantic configuration models with full validation
+- **Models** (`models/`): Domain models for devices, memory, configuration, and images
+- **Config Models** (`models/config/`): Pydantic configuration models with full validation including ImageConfig
+- **Image Models** (`models/image.py`): Comprehensive image metadata and processing result models
 
 **Service Layer** (`culora/services/`):
 
 - **Config Service** (`config_service.py`): Multi-source configuration management with precedence handling and property-based source tracking
 - **Device Service** (`device_service.py`): Intelligent hardware detection with CUDA/MPS/CPU support
 - **Memory Service** (`memory_service.py`): Memory management and tracking
+- **Image Service** (`image_service.py`): Comprehensive image loading, directory scanning, and batch processing with validation and metadata extraction
 
 **Core Foundation** (`culora/core/`):
 
@@ -177,7 +179,7 @@ culora/
 **CLI Layer** (`culora/cli/`):
 
 - **Application** (`app.py`): Main Typer application with global error handling
-- **Commands** (`commands/`): Modular command implementations (config, device)
+- **Commands** (`commands/`): Modular command implementations (config, device, images)
 - **Display** (`display/`): Rich console components and theming
 - **Validation** (`validation/`): CLI argument validators with proper error handling
 
@@ -188,12 +190,12 @@ culora/
 ### Modern Test Infrastructure (`tests/`)
 
 - **Test Organization**: Industry-standard structure with helpers, mocks, fixtures, unit, and integration directories
-- **Test Helpers** (`helpers/`): Modular utilities including ConfigBuilder factory, AssertionHelpers, and TempFileHelper
+- **Test Helpers** (`helpers/`): Modular utilities including ConfigBuilder factory, AssertionHelpers, TempFileHelper, and ImageFixtures
 - **Mock Implementations** (`mocks/`): Centralized PyTorch/CUDA mocking with MockContext utility
 - **Static Fixtures** (`fixtures/`): Reusable test data and configuration files
-- **Unit Tests** (`unit/`): Organized by domain (services, domain models, CLI) with 363 passing tests
+- **Unit Tests** (`unit/`): Organized by domain (services, domain models, CLI) with 397 passing tests
 - **Integration Tests** (`integration/`): End-to-end workflow testing including full CLI integration
-- **Comprehensive Coverage**: 363 tests with modern organization and 100% type safety
+- **Comprehensive Coverage**: 397 tests with modern organization and 100% type safety
 
 **Test Structure Benefits:**
 
@@ -212,6 +214,15 @@ culora/
 - **Automation**: Comprehensive Makefile for development workflow
 
 ### Recent Architecture Improvements
+
+**Task 2.3 Completion - Image Loading and Directory Processing Service**:
+
+- **Image Service Architecture**: Complete image loading, directory scanning, and batch processing with memory-efficient generator patterns
+- **Configuration Integration**: New ImageConfig with comprehensive validation and environment variable support
+- **Domain Models**: Rich image metadata models with validation status and error categorization
+- **CLI Commands**: Image management commands (scan, validate, info, formats) with beautiful Rich output
+- **Test Infrastructure**: ImageFixtures helper for comprehensive image testing scenarios
+- **Error Handling**: Robust error categorization for corrupted files, unsupported formats, and permission issues
 
 **ConfigService Refactoring**:
 

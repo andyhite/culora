@@ -6,6 +6,7 @@ import typer
 
 from culora.cli.commands.config import config_app
 from culora.cli.commands.device import device_app
+from culora.cli.commands.images import images_app
 from culora.cli.display.console import console
 from culora.core import ConfigError, CuLoRAError
 
@@ -21,6 +22,7 @@ app = typer.Typer(
 # Add subcommands
 app.add_typer(config_app, name="config", help="Configuration management")
 app.add_typer(device_app, name="device", help="Device information and management")
+app.add_typer(images_app, name="images", help="Image loading and processing")
 
 
 @app.callback()

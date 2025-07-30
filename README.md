@@ -47,6 +47,12 @@ poetry run culora config get device.preferred_device
 # Export configuration to file
 poetry run culora config export config.yaml
 
+# Image management and processing
+poetry run culora images scan /path/to/images     # Scan directory for images
+poetry run culora images validate /path/to/images # Validate all images
+poetry run culora images info /path/to/image.jpg  # Show image metadata
+poetry run culora images formats                  # List supported formats
+
 # Future: Curate images (in development)
 # poetry run culora curate input_folder output_folder --count 100
 ```
@@ -99,15 +105,15 @@ make check              # Format + lint + typecheck
 culora/
 ├── culora/
 │   ├── cli/           # CLI layer with Typer + Rich
-│   │   ├── commands/  # Command implementations (config, device)
+│   │   ├── commands/  # Command implementations (config, device, images)
 │   │   ├── display/   # Rich console components and theming
 │   │   └── validation/ # CLI argument validators
 │   ├── core/          # Foundation: exception hierarchy
 │   │   └── exceptions/ # Modular exception classes (config, device, culora)
 │   ├── domain/        # Domain-driven design models and enums
 │   │   ├── enums/     # Type-safe enums (device types, log levels)
-│   │   └── models/    # Domain models (device, memory, config)
-│   ├── services/      # Service layer (config, device, memory services)
+│   │   └── models/    # Domain models (device, memory, config, images)
+│   ├── services/      # Service layer (config, device, memory, image services)
 │   └── utils/         # Shared utilities (logging)
 ├── tests/             # Best-practice test organization
 │   ├── conftest.py    # Shared pytest fixtures
@@ -172,17 +178,21 @@ Before submitting changes:
 
 ## Current Status
 
-**Tasks 1.1, 1.2, 2.1 & 2.2 Completed**: Project foundation with domain-driven architecture, service layer, modern CLI, and comprehensive testing (363 passing tests)
+**Tasks 1.1, 1.2, 2.1, 2.2 & 2.3 Completed**: Project foundation with domain-driven architecture, service layer, modern CLI, image processing infrastructure, and comprehensive testing (397 passing tests)
 
 **Recent Updates**:
 
+- **Task 2.3 Completion**: Complete image loading and directory processing service with batch processing, validation, and metadata extraction
+- **Image CLI Commands**: Full image management commands (scan, validate, info, formats) with Rich-formatted output
+- **Configuration Enhancement**: Added ImageConfig with comprehensive validation and environment variable support
+- **Test Infrastructure Expansion**: Added ImageFixtures helper for comprehensive image testing scenarios  
 - **Architecture Refactor**: Complete reorganization using domain-driven design with service layer pattern
-- **Module Reorganization**: Removed unused modules (cli, analysis, selection, export) and implemented clean architecture
+- **Module Reorganization**: Removed unused modules and implemented clean architecture
 - **Exception Hierarchy**: Modular exception classes organized by domain (config, device, culora)
 - **CLI Implementation**: Complete Typer-based CLI with Rich integration, comprehensive validation, and beautiful output
 - **Test Infrastructure Overhaul**: Restructured entire test suite following industry best practices
 - **Modern Test Organization**: Separated helpers, mocks, fixtures, unit, and integration tests
-- **Enhanced Maintainability**: 363 tests now organized with modular utilities and clean imports
+- **Enhanced Maintainability**: 397 tests now organized with modular utilities and clean imports
 - **ConfigService Refactoring**: Eliminated duplicate state tracking with property-based approach
 
 **In Development**: Face analysis, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)

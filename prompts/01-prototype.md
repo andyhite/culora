@@ -58,15 +58,15 @@ After each implementation task, run the following quality checks:
 culora/
 ├── culora/
 │   ├── cli/           # CLI layer with Typer + Rich
-│   │   ├── commands/  # Command implementations (config, device)
+│   │   ├── commands/  # Command implementations (config, device, images)
 │   │   ├── display/   # Rich console components and theming
 │   │   └── validation/ # CLI argument validators
 │   ├── core/          # Foundation: exception hierarchy
 │   │   └── exceptions/ # Modular exception classes (config, device, culora)
 │   ├── domain/        # Domain-driven design models and enums
 │   │   ├── enums/     # Type-safe enums (device types, log levels)
-│   │   └── models/    # Domain models (device, memory, config)
-│   ├── services/      # Service layer (config, device, memory services)
+│   │   └── models/    # Domain models (device, memory, config, images)
+│   ├── services/      # Service layer (config, device, memory, image services)
 │   └── utils/         # Shared utilities (logging)
 ├── tests/             # Best-practice test organization
 │   ├── conftest.py    # Shared pytest fixtures
@@ -240,6 +240,12 @@ All core foundation components (types, exceptions, logging, configuration) are p
 - `culora device list` - List all available devices
 - `culora device memory` - Display memory information
 
+**Planned CLI Commands (Task 2.3)**:
+- `culora images scan <path>` - Scan directory and show image statistics
+- `culora images validate <path>` - Validate all images with detailed report
+- `culora images info <file>` - Show metadata for single image
+- `culora images formats` - List supported image formats
+
 **Architecture Improvements**:
 
 - **ConfigService Refactoring**: Eliminated duplicate state tracking between `_config_sources` and `_config_file` using property-based approach
@@ -248,6 +254,80 @@ All core foundation components (types, exceptions, logging, configuration) are p
 - **Validation Layer**: Comprehensive CLI argument validators with proper error handling and helpful messages
 
 All CLI functionality is production-ready with 363 passing tests and full type safety compliance.
+
+### **Task 2.3: Image Loading and Directory Processing Service**
+
+**Goal**: Implement robust image loading, directory traversal, and basic image processing capabilities as the foundation for all image analysis tasks
+
+**Requirements**:
+
+- Recursive directory traversal with configurable depth limits and file filtering
+- Multi-format image loading with validation (JPEG, PNG, WebP, TIFF)
+- Batch processing with memory-efficient generator-based loading
+- Comprehensive error handling for corrupted or invalid image files
+- Integration with existing DeviceService for memory-aware processing
+- Rich progress reporting for large directory scans
+
+**✅ TASK 2.3 COMPLETED**: Successfully implemented comprehensive image loading and directory processing service. Key implementation details:
+
+- **Image Service Architecture**: Complete `ImageService` with directory scanning, image loading, and batch processing capabilities
+- **Domain Models**: Rich image metadata models (`ImageMetadata`, `ImageLoadResult`, `DirectoryScanResult`, `BatchLoadResult`) with validation status and error categorization
+- **Configuration Integration**: New `ImageConfig` with comprehensive Pydantic validation and environment variable support
+- **Memory-Efficient Processing**: Generator-based batch processing with configurable batch sizes and early validation
+- **CLI Commands**: Complete image management commands with beautiful Rich output:
+  - `culora images scan /path/to/images` - Directory scanning with statistics
+  - `culora images validate /path/to/images` - Comprehensive image validation
+  - `culora images info /path/to/image.jpg` - Single image metadata display
+  - `culora images formats` - List supported image formats
+- **Error Handling**: Robust error categorization for corrupted files, unsupported formats, permission issues, and dimension limits
+- **Test Infrastructure**: Comprehensive `ImageFixtures` helper for creating test images, directory structures, and corrupted files
+- **Configuration Cleanup**: Removed unused configuration options (`validate_on_load`, `strict_format_validation`, `progress_reporting`) to eliminate orphaned code
+- **Global Service Management**: Lazy-initialized global `ImageService` instance with proper error handling
+- **Quality Assurance**: All 397 tests passing with full type safety and linting compliance
+
+**Key Components Implemented**:
+
+**Domain Models** (`culora/domain/models/image.py`):
+- `ImageMetadata`: Complete metadata with path, format, dimensions, file size, timestamps, and validation status
+- `ImageLoadResult`: Success/failure status with image data, metadata, and detailed error information
+- `DirectoryScanResult`: Directory scan statistics with format breakdown and error collection
+- `BatchLoadResult`: Batch processing results with performance metrics and success/failure counts
+
+**Service Implementation** (`culora/services/image_service.py`):
+- Complete `ImageService` with directory scanning, image loading, validation, and batch processing
+- Memory-efficient generator-based processing for large datasets
+- Integration with existing configuration and error handling systems
+
+**Configuration** (`culora/domain/models/config/image.py`):
+- `ImageConfig` with comprehensive Pydantic validation for formats, dimensions, batch sizes, and scan settings
+- Environment variable integration (e.g., `CULORA_IMAGES_MAX_BATCH_SIZE`)
+
+**CLI Integration** (`culora/cli/commands/images.py`):
+- Complete image management command suite with Rich-formatted output
+- Error handling with proper exit codes and user-friendly messages
+
+**Test Infrastructure** (`tests/helpers/image_fixtures.py`):
+- `ImageFixtures` helper for creating test images, directory structures, and corrupted files
+- Comprehensive test coverage with 397 total tests including image functionality
+
+**Configuration Integration**:
+```yaml
+images:
+  supported_formats: [".jpg", ".jpeg", ".png", ".webp", ".tiff", ".tif"]
+  max_batch_size: 32
+  max_image_size: [4096, 4096]
+  recursive_scan: true
+  max_scan_depth: 10
+  skip_hidden_files: true
+  progress_update_interval: 10
+```
+
+**Architecture Benefits**:
+- **Foundation for AI Analysis**: Robust image loading infrastructure ready for face detection and quality assessment
+- **Immediate User Value**: Full CLI functionality for image directory management and validation
+- **Performance Optimized**: Memory-efficient patterns suitable for large dataset processing
+- **Error Resilient**: Comprehensive handling of real-world image dataset issues
+- **Type Safe**: Full mypy compliance with modern Python 3.12 syntax
 
 ---
 

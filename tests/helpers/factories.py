@@ -4,7 +4,7 @@ from typing import Any
 
 from culora.domain.enums import LogLevel
 from culora.domain.enums.device_types import DeviceType
-from culora.domain.models import CuLoRAConfig, DeviceConfig, LoggingConfig
+from culora.domain.models import CuLoRAConfig, DeviceConfig, ImageConfig, LoggingConfig
 
 
 class ConfigBuilder:
@@ -13,6 +13,7 @@ class ConfigBuilder:
     def __init__(self) -> None:
         self._device_type = DeviceType.CPU
         self._log_level = LogLevel.INFO
+        self._image_config: ImageConfig | None = None
 
     def with_device(self, device_type: DeviceType) -> "ConfigBuilder":
         """Set the device type."""
@@ -24,12 +25,27 @@ class ConfigBuilder:
         self._log_level = log_level
         return self
 
+    def with_image_config(self, image_config: ImageConfig) -> "ConfigBuilder":
+        """Set the image configuration."""
+        self._image_config = image_config
+        return self
+
     def build(self) -> CuLoRAConfig:
         """Build the configuration."""
-        return CuLoRAConfig(
-            device=DeviceConfig(preferred_device=self._device_type),
-            logging=LoggingConfig(log_level=self._log_level),
-        )
+        device_config = DeviceConfig(preferred_device=self._device_type)
+        logging_config = LoggingConfig(log_level=self._log_level)
+
+        if self._image_config is not None:
+            return CuLoRAConfig(
+                device=device_config,
+                logging=logging_config,
+                images=self._image_config,
+            )
+        else:
+            return CuLoRAConfig(
+                device=device_config,
+                logging=logging_config,
+            )
 
 
 def create_test_config(**kwargs: Any) -> CuLoRAConfig:

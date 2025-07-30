@@ -71,10 +71,27 @@ class TestCuLoRAConfig:
             .build()
         )
 
-        dumped = config.model_dump()
+        dumped = config.model_dump(mode="json")
         expected = {
             "device": {"preferred_device": "cuda"},
             "logging": {"log_level": "error"},
+            "images": {
+                "supported_formats": [
+                    ".jpg",
+                    ".jpeg",
+                    ".png",
+                    ".webp",
+                    ".tiff",
+                    ".tif",
+                ],
+                "max_batch_size": 32,
+                "max_image_size": [4096, 4096],  # tuple becomes list in JSON mode
+                "max_file_size": 52428800,
+                "recursive_scan": True,
+                "max_scan_depth": 10,
+                "skip_hidden_files": True,
+                "progress_update_interval": 10,
+            },
         }
         assert dumped == expected
 

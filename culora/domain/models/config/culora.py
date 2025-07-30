@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from .device import DeviceConfig
+from .image import ImageConfig
 from .logging import LoggingConfig
 
 
@@ -17,6 +18,7 @@ class CuLoRAConfig(BaseModel):
 
     device: DeviceConfig = Field(default_factory=DeviceConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    images: ImageConfig = Field(default_factory=ImageConfig)
 
     model_config = ConfigDict(
         validate_assignment=True,
