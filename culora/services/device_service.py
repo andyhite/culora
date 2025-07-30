@@ -461,3 +461,29 @@ class DeviceService:
             raise DeviceError("Device detection not run. Call initialize() first.")
 
         return self._select_optimal_device(self._all_devices)
+
+
+# Global device service instance
+_device_service: DeviceService | None = None
+
+
+def get_device_service() -> DeviceService:
+    """Get the global device service instance."""
+    global _device_service
+    if _device_service is None:
+        from culora.services import get_config_service
+        from culora.utils import get_logger
+
+        logger = get_logger(__name__)
+        config_service = get_config_service()
+
+        # Load default config if not already loaded
+        try:
+            config = config_service.get_config()
+        except Exception:
+            config = config_service.load_config()
+
+        _device_service = DeviceService(config, logger)
+        _device_service.initialize()
+
+    return _device_service

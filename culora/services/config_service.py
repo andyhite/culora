@@ -22,6 +22,13 @@ from culora.utils import get_logger
 
 logger = get_logger(__name__)
 
+# Default config file locations
+DEFAULT_CONFIG_PATHS = [
+    Path.home() / ".config" / "culora" / "config.yaml",
+    Path.home() / ".culora.yaml",
+    Path.cwd() / "culora.yaml",
+]
+
 
 class ConfigService:
     """Unified configuration service for CuLoRA.
@@ -32,7 +39,9 @@ class ConfigService:
 
     def __init__(self) -> None:
         self._config: CuLoRAConfig | None = None
-        self._config_sources: dict[str, str] = {}
+        self._config_file: Path | None = None
+        self._env_loaded: bool = False
+        self._cli_loaded: bool = False
 
     def load_config(
         self,
@@ -61,13 +70,13 @@ class ConfigService:
         try:
             # Start with default configuration
             config_dict: dict[str, Any] = {}
-            self._config_sources["defaults"] = "Built-in defaults"
 
-            # Load from config file if provided
+            # Find and load config file
+            config_file = self._find_config_file(config_file)
             if config_file and config_file.exists():
                 file_config = self._load_from_file(config_file)
                 config_dict = self._deep_merge(config_dict, file_config)
-                self._config_sources["file"] = str(config_file)
+                self._config_file = config_file
                 logger.info(
                     "Loaded configuration from file", config_file=str(config_file)
                 )
@@ -76,13 +85,13 @@ class ConfigService:
             env_config = self._load_from_env(env_prefix)
             if env_config:
                 config_dict = self._deep_merge(config_dict, env_config)
-                self._config_sources["environment"] = f"{env_prefix}_* variables"
+                self._env_loaded = True
                 logger.info("Loaded configuration from environment variables")
 
             # Apply CLI overrides
             if cli_overrides:
                 config_dict = self._deep_merge(config_dict, cli_overrides)
-                self._config_sources["cli"] = "Command line arguments"
+                self._cli_loaded = True
                 logger.info("Applied CLI configuration overrides")
 
             # Validate and create configuration
@@ -90,7 +99,7 @@ class ConfigService:
 
             logger.info(
                 "Configuration loaded successfully",
-                sources=list(self._config_sources.keys()),
+                sources=list(self.config_sources.keys()),
                 device_type=self._config.device.preferred_device,
                 log_level=self._config.logging.log_level,
             )
@@ -133,6 +142,26 @@ class ConfigService:
                 error_code="CONFIG_NOT_LOADED",
             )
         return self._config
+
+    @property
+    def config_sources(self) -> dict[str, str]:
+        """Get configuration sources for display.
+
+        Returns:
+            Dictionary mapping source names to descriptions
+        """
+        sources = {"defaults": "Built-in defaults"}
+
+        if self._config_file:
+            sources["file"] = str(self._config_file)
+
+        if self._env_loaded:
+            sources["environment"] = "CULORA_* variables"
+
+        if self._cli_loaded:
+            sources["cli"] = "Command line arguments"
+
+        return sources
 
     def export_config(self, output_path: Path, include_defaults: bool = True) -> None:
         """Export current configuration to file.
@@ -206,11 +235,120 @@ class ConfigService:
         config = self.get_config()
 
         return {
-            "sources": self._config_sources,
+            "sources": self.config_sources,
             "device": {
                 "preferred": config.device.preferred_device,
             },
         }
+
+    def get_config_value(self, key_path: str) -> Any:
+        """Get a specific configuration value by key path.
+
+        Args:
+            key_path: Dot-separated path to configuration value (e.g., 'device.preferred_device')
+
+        Returns:
+            Configuration value at the specified path
+
+        Raises:
+            MissingConfigError: If configuration has not been loaded
+            KeyError: If key path does not exist
+        """
+        config = self.get_config()
+
+        try:
+            current = config
+            for key in key_path.split("."):
+                if hasattr(current, key):
+                    current = getattr(current, key)
+                else:
+                    raise KeyError(
+                        f"Configuration key '{key}' not found in path '{key_path}'"
+                    )
+
+            logger.debug(
+                "Retrieved configuration value", key_path=key_path, value=current
+            )
+            return current
+
+        except Exception as e:
+            logger.error(
+                "Failed to get configuration value", key_path=key_path, error=str(e)
+            )
+            raise
+
+    def set_config_value(
+        self, key_path: str, value: Any, config_file: Path | None = None
+    ) -> None:
+        """Set a configuration value and save to file.
+
+        Args:
+            key_path: Dot-separated path to configuration value (e.g., 'device.preferred_device')
+            value: Value to set
+            config_file: Config file to save to (uses current or default if None)
+
+        Raises:
+            MissingConfigError: If configuration has not been loaded
+            InvalidConfigError: If the new configuration is invalid
+            ConfigError: If setting or saving fails
+        """
+        logger.info("Setting configuration value", key_path=key_path, value=value)
+
+        try:
+            # Get current config as dict
+            current_config = self.get_config()
+            config_dict = current_config.model_dump(mode="json")
+
+            # Set the new value in the dictionary
+            self._set_nested_value(config_dict, key_path, value)
+
+            # Validate the new configuration
+            validation_errors = self.validate_config(config_dict)
+            if validation_errors:
+                error_details = "; ".join(
+                    f"{k}: {v}" for k, v in validation_errors.items()
+                )
+                raise InvalidConfigError(
+                    field_name=key_path,
+                    field_value=str(value),
+                    expected="valid configuration value",
+                    error_code="INVALID_CONFIG_VALUE",
+                    details=error_details,
+                )
+
+            # Update the current configuration
+            self._config = CuLoRAConfig.from_dict(config_dict)
+
+            # Save to file
+            target_file = self._resolve_config_file(config_file)
+            self._save_to_file(config_dict, target_file)
+
+            logger.info(
+                "Configuration value set successfully",
+                key_path=key_path,
+                value=value,
+                saved_to=str(target_file),
+            )
+
+        except (InvalidConfigError, MissingConfigError):
+            raise  # Re-raise config-specific errors
+
+        except Exception as e:
+            logger.exception(
+                "Failed to set configuration value", key_path=key_path, value=value
+            )
+            raise ConfigError(
+                f"Failed to set configuration value '{key_path}': {e}",
+                error_code="CONFIG_SET_FAILED",
+            ) from e
+
+    def get_config_file(self) -> Path | None:
+        """Get the currently loaded config file path.
+
+        Returns:
+            Path to the currently loaded config file, or None if no file was loaded
+        """
+        return self._config_file
 
     def _load_from_file(self, config_file: Path) -> dict[str, Any]:
         """Load configuration from YAML or JSON file.
@@ -392,6 +530,83 @@ class ConfigService:
         """
         logger.debug("Creating CuLoRA configuration from dictionary")
         return CuLoRAConfig.from_dict(config_dict)
+
+    def _find_config_file(self, provided_file: Path | None) -> Path | None:
+        """Find configuration file using provided path or defaults.
+
+        Args:
+            provided_file: Explicitly provided config file path
+
+        Returns:
+            Path to config file if found, None otherwise
+        """
+        if provided_file:
+            return provided_file
+
+        # Check default locations
+        for default_path in DEFAULT_CONFIG_PATHS:
+            if default_path.exists():
+                logger.debug("Found default config file", path=str(default_path))
+                return default_path
+
+        logger.debug("No config file found in default locations")
+        return None
+
+    def _resolve_config_file(self, provided_file: Path | None) -> Path:
+        """Resolve config file for saving, creating default if needed.
+
+        Args:
+            provided_file: Explicitly provided config file path
+
+        Returns:
+            Path to use for saving configuration
+
+        Raises:
+            ConfigError: If no suitable config file can be determined
+        """
+        if provided_file:
+            # Ensure parent directory exists
+            provided_file.parent.mkdir(parents=True, exist_ok=True)
+            return provided_file
+
+        if self._config_file:
+            return self._config_file
+
+        # Use first default location
+        default_file = DEFAULT_CONFIG_PATHS[0]
+        default_file.parent.mkdir(parents=True, exist_ok=True)
+        logger.info("Creating default config file", path=str(default_file))
+        return default_file
+
+    def _set_nested_value(
+        self, config_dict: dict[str, Any], key_path: str, value: Any
+    ) -> None:
+        """Set a nested value in a configuration dictionary.
+
+        Args:
+            config_dict: Configuration dictionary to modify
+            key_path: Dot-separated path to the value
+            value: Value to set
+
+        Raises:
+            KeyError: If intermediate keys don't exist
+        """
+        keys = key_path.split(".")
+        current = config_dict
+
+        # Navigate to the parent of the target key
+        for key in keys[:-1]:
+            if key not in current:
+                current[key] = {}
+            elif not isinstance(current[key], dict):
+                raise KeyError(
+                    f"Cannot set nested value: '{key}' is not a dictionary in path '{key_path}'"
+                )
+            current = current[key]
+
+        # Set the final value
+        final_key = keys[-1]
+        current[final_key] = value
 
 
 # Global configuration service instance

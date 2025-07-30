@@ -21,7 +21,7 @@ class TestConfigService:
         """Test ConfigService initialization."""
         service = ConfigService()
         assert service._config is None
-        assert service._config_sources == {}
+        assert service.config_sources == {"defaults": "Built-in defaults"}
 
     def test_load_config_defaults_only(self) -> None:
         """Test loading configuration with defaults only."""
@@ -31,7 +31,7 @@ class TestConfigService:
         assert isinstance(config, CuLoRAConfig)
         assert config.device.preferred_device == DeviceType.CPU
         assert config.logging.log_level == LogLevel.INFO
-        assert "defaults" in service._config_sources
+        assert "defaults" in service.config_sources
 
     def test_load_config_from_json_file(self) -> None:
         """Test loading configuration from JSON file."""
@@ -46,8 +46,8 @@ class TestConfigService:
 
             assert config.device.preferred_device == DeviceType.CUDA
             assert config.logging.log_level == LogLevel.DEBUG
-            assert "file" in service._config_sources
-            assert str(config_file) in service._config_sources["file"]
+            assert "file" in service.config_sources
+            assert str(config_file) in service.config_sources["file"]
 
     def test_load_config_from_yaml_file(self) -> None:
         """Test loading configuration from YAML file."""
@@ -62,7 +62,8 @@ class TestConfigService:
 
             assert config.device.preferred_device == DeviceType.MPS
             assert config.logging.log_level == LogLevel.WARNING
-            assert "file" in service._config_sources
+            assert "file" in service.config_sources
+            assert str(config_file) in service.config_sources["file"]
 
     def test_load_config_nonexistent_file(self) -> None:
         """Test loading configuration with nonexistent file."""
@@ -72,7 +73,7 @@ class TestConfigService:
         # Should not raise error, just skip file loading
         config = service.load_config(config_file=nonexistent_file)
         assert config.device.preferred_device == DeviceType.CPU
-        assert "file" not in service._config_sources
+        assert "file" not in service.config_sources
 
     def test_load_config_from_environment(self) -> None:
         """Test loading configuration from environment variables."""
@@ -84,7 +85,7 @@ class TestConfigService:
 
             assert config.device.preferred_device == DeviceType.CUDA
             assert config.logging.log_level == LogLevel.ERROR
-            assert "environment" in service._config_sources
+            assert "environment" in service.config_sources
 
     def test_load_config_cli_overrides(self) -> None:
         """Test loading configuration with CLI overrides."""
@@ -98,7 +99,7 @@ class TestConfigService:
 
         assert config.device.preferred_device == DeviceType.MPS
         assert config.logging.log_level == LogLevel.CRITICAL
-        assert "cli" in service._config_sources
+        assert "cli" in service.config_sources
 
     def test_load_config_precedence(self) -> None:
         """Test configuration source precedence (CLI > env > file > defaults)."""

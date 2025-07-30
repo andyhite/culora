@@ -166,13 +166,20 @@ culora/
 
 **Service Layer** (`culora/services/`):
 
-- **Config Service** (`config_service.py`): Multi-source configuration management with precedence handling
+- **Config Service** (`config_service.py`): Multi-source configuration management with precedence handling and property-based source tracking
 - **Device Service** (`device_service.py`): Intelligent hardware detection with CUDA/MPS/CPU support
 - **Memory Service** (`memory_service.py`): Memory management and tracking
 
 **Core Foundation** (`culora/core/`):
 
 - **Exception Hierarchy** (`exceptions/`): Modular exception classes organized by domain (config, device, culora)
+
+**CLI Layer** (`culora/cli/`):
+
+- **Application** (`app.py`): Main Typer application with global error handling
+- **Commands** (`commands/`): Modular command implementations (config, device)
+- **Display** (`display/`): Rich console components and theming
+- **Validation** (`validation/`): CLI argument validators with proper error handling
 
 **Utilities** (`culora/utils/`):
 
@@ -184,9 +191,9 @@ culora/
 - **Test Helpers** (`helpers/`): Modular utilities including ConfigBuilder factory, AssertionHelpers, and TempFileHelper
 - **Mock Implementations** (`mocks/`): Centralized PyTorch/CUDA mocking with MockContext utility
 - **Static Fixtures** (`fixtures/`): Reusable test data and configuration files
-- **Unit Tests** (`unit/`): Organized by domain (services, domain models) with 255 passing tests
-- **Integration Tests** (`integration/`): End-to-end workflow testing with fixture composition
-- **Comprehensive Coverage**: 255 tests with modern organization and 100% type safety
+- **Unit Tests** (`unit/`): Organized by domain (services, domain models, CLI) with 363 passing tests
+- **Integration Tests** (`integration/`): End-to-end workflow testing including full CLI integration
+- **Comprehensive Coverage**: 363 tests with modern organization and 100% type safety
 
 **Test Structure Benefits:**
 
@@ -199,9 +206,27 @@ culora/
 
 - **Dependencies**: All AI model and development tool dependencies configured and updated to latest versions (Python 3.12, Ruff 0.12.5, Black 25.1.0, mypy 1.14.1)
 - **Quality Tools**: Black, isort, Ruff, mypy, pytest with optimal configurations
-- **Architecture**: Clean domain-driven design with service layer pattern
+- **Architecture**: Clean domain-driven design with service layer pattern and modern CLI
+- **CLI Implementation**: Typer-based CLI with Rich integration, comprehensive validation, and beautiful output
 - **Test Infrastructure**: Industry-standard test organization with helpers, mocks, and fixtures
 - **Automation**: Comprehensive Makefile for development workflow
+
+### Recent Architecture Improvements
+
+**ConfigService Refactoring**:
+
+- Eliminated duplicate state tracking between `_config_sources` and `_config_file`
+- Implemented property-based `config_sources` that derives source information dynamically
+- Simplified internal state management while maintaining identical public API
+- Reduced potential for synchronization bugs between redundant state variables
+
+**CLI Implementation Architecture**:
+
+- Clean separation between CLI layer and business logic services
+- Global service instances with lazy initialization pattern
+- Rich theming system for consistent visual styling
+- Comprehensive argument validation with helpful error messages
+- Proper exception chaining and error handling throughout CLI commands
 
 ## Implementation Plan
 

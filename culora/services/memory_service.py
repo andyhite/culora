@@ -99,3 +99,19 @@ class MemoryService:
         )
 
         return Memory(total_mb=total_mb, available_mb=available_mb)
+
+
+# Global memory service instance
+_memory_service: MemoryService | None = None
+
+
+def get_memory_service() -> MemoryService:
+    """Get the global memory service instance."""
+    global _memory_service
+    if _memory_service is None:
+        from culora.utils import get_logger
+
+        logger = get_logger(__name__)
+        _memory_service = MemoryService(logger)
+
+    return _memory_service

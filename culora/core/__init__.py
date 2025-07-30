@@ -7,6 +7,7 @@ This is the foundation layer that other layers depend on.
 from .exceptions import (
     ConfigError,
     CuLoRAError,
+    DeviceError,
     InvalidConfigError,
     MissingConfigError,
 )
@@ -14,6 +15,7 @@ from .exceptions import (
 __all__ = [
     "ConfigError",
     "CuLoRAError",
+    "DeviceError",
     "InvalidConfigError",
     "MissingConfigError",
 ]

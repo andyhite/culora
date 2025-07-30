@@ -36,14 +36,19 @@ poetry run culora --help
 ### Basic Usage
 
 ```bash
-# Curate 100 best images from a dataset
-poetry run culora curate input_folder output_folder --count 100
+# Show configuration and device information
+poetry run culora config show
+poetry run culora device info
 
-# With reference images for identity matching
-poetry run culora curate input_folder output_folder --count 50 --reference-dir references/
+# Manage configuration values
+poetry run culora config set device.preferred_device cuda
+poetry run culora config get device.preferred_device
 
-# Show version and device information
-poetry run culora version
+# Export configuration to file
+poetry run culora config export config.yaml
+
+# Future: Curate images (in development)
+# poetry run culora curate input_folder output_folder --count 100
 ```
 
 ## Development
@@ -93,6 +98,10 @@ make check              # Format + lint + typecheck
 ```text
 culora/
 ├── culora/
+│   ├── cli/           # CLI layer with Typer + Rich
+│   │   ├── commands/  # Command implementations (config, device)
+│   │   ├── display/   # Rich console components and theming
+│   │   └── validation/ # CLI argument validators
 │   ├── core/          # Foundation: exception hierarchy
 │   │   └── exceptions/ # Modular exception classes (config, device, culora)
 │   ├── domain/        # Domain-driven design models and enums
@@ -105,7 +114,7 @@ culora/
 │   ├── helpers/       # Test utilities (factories, assertions, file utils)
 │   ├── mocks/         # Mock implementations (PyTorch, AI models)
 │   ├── fixtures/      # Static test data and configurations
-│   ├── unit/          # Unit tests organized by domain
+│   ├── unit/          # Unit tests organized by domain (services, CLI, etc.)
 │   └── integration/   # Integration and workflow tests
 ├── prompts/           # Implementation planning documents
 ├── Makefile          # Development automation
@@ -163,18 +172,20 @@ Before submitting changes:
 
 ## Current Status
 
-**Tasks 1.1, 1.2 & 2.1 Completed**: Project foundation with domain-driven architecture, service layer, and comprehensive testing (255 passing tests)
+**Tasks 1.1, 1.2, 2.1 & 2.2 Completed**: Project foundation with domain-driven architecture, service layer, modern CLI, and comprehensive testing (363 passing tests)
 
 **Recent Updates**:
 
 - **Architecture Refactor**: Complete reorganization using domain-driven design with service layer pattern
 - **Module Reorganization**: Removed unused modules (cli, analysis, selection, export) and implemented clean architecture
 - **Exception Hierarchy**: Modular exception classes organized by domain (config, device, culora)
+- **CLI Implementation**: Complete Typer-based CLI with Rich integration, comprehensive validation, and beautiful output
 - **Test Infrastructure Overhaul**: Restructured entire test suite following industry best practices
 - **Modern Test Organization**: Separated helpers, mocks, fixtures, unit, and integration tests
-- **Enhanced Maintainability**: 255 tests now organized with modular utilities and clean imports
+- **Enhanced Maintainability**: 363 tests now organized with modular utilities and clean imports
+- **ConfigService Refactoring**: Eliminated duplicate state tracking with property-based approach
 
-**In Development**: CLI interface (Task 2.2), then face analysis, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)
+**In Development**: Face analysis, quality assessment, and selection algorithms (see `prompts/01-prototype.md` for detailed roadmap)
 
 ## License
 

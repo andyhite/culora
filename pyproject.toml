@@ -11,7 +11,7 @@ readme = "README.md"
 packages = [{ include = "culora" }]
 
 [tool.poetry.scripts]
-culora = "culora.cli.main:app"
+culora = "culora.cli.app:cli_main"
 
 [tool.poetry.dependencies]
 python = "^3.12"
