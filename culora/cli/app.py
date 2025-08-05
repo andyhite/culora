@@ -8,6 +8,7 @@ from culora.cli.commands.clip import clip_app
 from culora.cli.commands.composition import composition_app
 from culora.cli.commands.config import config_app
 from culora.cli.commands.device import device_app
+from culora.cli.commands.duplicate import app as duplicate_app
 from culora.cli.commands.faces import faces_app
 from culora.cli.commands.images import images_app
 from culora.cli.commands.pose import pose_app
@@ -42,6 +43,7 @@ app.add_typer(quality_app, name="quality", help="Image quality assessment")
 app.add_typer(composition_app, name="composition", help="Image composition analysis")
 app.add_typer(clip_app, name="clip", help="CLIP semantic embedding analysis")
 app.add_typer(pose_app, name="pose", help="Pose estimation and analysis")
+app.add_typer(duplicate_app, name="duplicate", help="Duplicate detection and analysis")
 
 
 @app.callback()

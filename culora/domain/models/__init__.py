@@ -31,6 +31,16 @@ from .config import (
     QualityConfig,
 )
 from .device import Device
+from .duplicate import (
+    DuplicateAnalysis,
+    DuplicateConfig,
+    DuplicateGroup,
+    DuplicateMatch,
+    DuplicateRemovalStrategy,
+    DuplicateThreshold,
+    HashAlgorithm,
+    ImageHash,
+)
 from .face import BatchFaceAnalysisResult, FaceAnalysisResult, FaceDetection
 from .face_reference import (
     ReferenceEmbedding,
@@ -80,11 +90,19 @@ __all__ = [
     "DeviceConfig",
     "DirectoryScanResult",
     "DiversityAnalysis",
+    "DuplicateAnalysis",
+    "DuplicateConfig",
+    "DuplicateGroup",
+    "DuplicateMatch",
+    "DuplicateRemovalStrategy",
+    "DuplicateThreshold",
     "EmbeddingSimilarity",
     "FaceAnalysisConfig",
     "FaceAnalysisResult",
     "FaceDetection",
+    "HashAlgorithm",
     "ImageConfig",
+    "ImageHash",
     "ImageLoadResult",
     "ImageMetadata",
     "ImageQualityResult",

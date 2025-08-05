@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .clip import CLIPConfig
 from .composition import CompositionConfig
 from .device import DeviceConfig
+from .duplicate import DuplicateConfig
 from .face import FaceAnalysisConfig
 from .image import ImageConfig
 from .logging import LoggingConfig
@@ -29,6 +30,7 @@ class CuLoRAConfig(BaseModel):
     composition: CompositionConfig = Field(default_factory=CompositionConfig)
     clip: CLIPConfig = Field(default_factory=CLIPConfig)
     pose: PoseConfig = Field(default_factory=PoseConfig)
+    duplicate: DuplicateConfig = Field(default_factory=DuplicateConfig)
 
     model_config = ConfigDict(
         validate_assignment=True,

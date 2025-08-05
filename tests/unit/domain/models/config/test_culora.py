@@ -239,6 +239,16 @@ class TestCuLoRAConfig:
                 "export_pose_visualization": True,
                 "export_clusters": True,
             },
+            "duplicate": {
+                "hash_algorithm": "perceptual",
+                "similarity_threshold": 10,
+                "group_threshold": 5,
+                "removal_strategy": "highest_quality",
+                "enable_exact_matching": True,
+                "enable_near_matching": True,
+                "max_group_size": 50,
+                "progress_reporting": True,
+            },
         }
         assert dumped == expected
 
