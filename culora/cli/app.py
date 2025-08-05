@@ -8,6 +8,7 @@ from culora.cli.commands.config import config_app
 from culora.cli.commands.device import device_app
 from culora.cli.commands.faces import faces_app
 from culora.cli.commands.images import images_app
+from culora.cli.commands.quality import quality_app
 from culora.cli.display.console import console
 from culora.core import ConfigError, CuLoRAError
 from culora.services.config_service import get_config_service
@@ -16,6 +17,7 @@ from culora.services.face_analysis_service import get_face_analysis_service
 from culora.services.face_reference_service import get_face_reference_service
 from culora.services.image_service import get_image_service
 from culora.services.memory_service import get_memory_service
+from culora.services.quality_service import get_quality_service
 
 # Create main Typer app
 app = typer.Typer(
@@ -31,6 +33,7 @@ app.add_typer(config_app, name="config", help="Configuration management")
 app.add_typer(device_app, name="device", help="Device information and management")
 app.add_typer(images_app, name="images", help="Image loading and processing")
 app.add_typer(faces_app, name="faces", help="Face detection and analysis")
+app.add_typer(quality_app, name="quality", help="Image quality assessment")
 
 
 @app.callback()
@@ -59,6 +62,7 @@ def main(
             get_image_service()
             get_face_analysis_service()
             get_face_reference_service()
+            get_quality_service()
 
         except Exception as e:
             console.error(f"Failed to initialize services: {e}")

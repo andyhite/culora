@@ -116,6 +116,22 @@ class TestCuLoRAConfig:
                 "reference_matching_method": "average",
                 "use_reference_fallback": True,
             },
+            "quality": {
+                "sharpness_kernel_size": 3,
+                "optimal_brightness_range": [0.3, 0.7],
+                "high_contrast_threshold": 0.4,
+                "min_saturation": 0.1,
+                "max_saturation": 0.8,
+                "noise_threshold": 50.0,
+                "sharpness_weight": 0.35,
+                "brightness_weight": 0.2,
+                "contrast_weight": 0.25,
+                "color_weight": 0.15,
+                "noise_weight": 0.05,
+                "min_quality_score": 0.3,
+                "resize_for_analysis": True,
+                "max_analysis_size": [1024, 1024],
+            },
         }
         assert dumped == expected
 

@@ -9,6 +9,7 @@ from .device import DeviceConfig
 from .face import FaceAnalysisConfig
 from .image import ImageConfig
 from .logging import LoggingConfig
+from .quality import QualityConfig
 
 
 class CuLoRAConfig(BaseModel):
@@ -21,6 +22,7 @@ class CuLoRAConfig(BaseModel):
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     images: ImageConfig = Field(default_factory=ImageConfig)
     faces: FaceAnalysisConfig = Field(default_factory=FaceAnalysisConfig)
+    quality: QualityConfig = Field(default_factory=QualityConfig)
 
     model_config = ConfigDict(
         validate_assignment=True,

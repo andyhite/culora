@@ -10,6 +10,7 @@ from culora.domain.models import (
     FaceAnalysisConfig,
     ImageConfig,
     LoggingConfig,
+    QualityConfig,
 )
 
 
@@ -21,6 +22,7 @@ class ConfigBuilder:
         self._log_level = LogLevel.INFO
         self._image_config: ImageConfig | None = None
         self._face_config: FaceAnalysisConfig | None = None
+        self._quality_config: QualityConfig | None = None
 
     def with_device(self, device_type: DeviceType) -> "ConfigBuilder":
         """Set the device type."""
@@ -42,36 +44,28 @@ class ConfigBuilder:
         self._face_config = face_config
         return self
 
+    def with_quality_config(self, quality_config: QualityConfig) -> "ConfigBuilder":
+        """Set the quality configuration."""
+        self._quality_config = quality_config
+        return self
+
     def build(self) -> CuLoRAConfig:
         """Build the configuration."""
         device_config = DeviceConfig(preferred_device=self._device_type)
         logging_config = LoggingConfig(log_level=self._log_level)
 
-        # Build config with required fields and optionally add others
-        if self._image_config is not None and self._face_config is not None:
-            return CuLoRAConfig(
-                device=device_config,
-                logging=logging_config,
-                images=self._image_config,
-                faces=self._face_config,
-            )
-        elif self._image_config is not None:
-            return CuLoRAConfig(
-                device=device_config,
-                logging=logging_config,
-                images=self._image_config,
-            )
-        elif self._face_config is not None:
-            return CuLoRAConfig(
-                device=device_config,
-                logging=logging_config,
-                faces=self._face_config,
-            )
-        else:
-            return CuLoRAConfig(
-                device=device_config,
-                logging=logging_config,
-            )
+        # Use provided configs or defaults
+        image_config = self._image_config or ImageConfig()
+        face_config = self._face_config or FaceAnalysisConfig()
+        quality_config = self._quality_config or QualityConfig()
+
+        return CuLoRAConfig(
+            device=device_config,
+            logging=logging_config,
+            images=image_config,
+            faces=face_config,
+            quality=quality_config,
+        )
 
 
 def create_test_config(**kwargs: Any) -> CuLoRAConfig:
