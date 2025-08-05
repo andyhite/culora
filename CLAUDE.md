@@ -1,247 +1,208 @@
-# CuLoRA - Advanced LoRA Dataset Curation Utility
+# CuLoRA - Agent Memory & Development Guidelines
 
-CuLoRA is a sophisticated command-line utility for intelligently curating image datasets specifically for LoRA (Low-Rank Adaptation) training.
+**Purpose:**
+CuLoRA is a command-line tool for intelligently curating image datasets for LoRA training. It combines face detection, quality assessment, composition analysis, and duplicate detection to automatically select the best images from large datasets. All features must be exposed via the CLI.
 
-## Development Stack
+---
 
-- **CLI Framework**: Typer with Rich integration for beautiful terminal output
-- **Configuration**: Pydantic models with full validation
-- **Logging**: Structured logging with structlog
-- **Quality Tools**: Black, isort, Ruff, mypy, pytest
-- **Dependency Management**: Poetry
+## Development Discipline
 
-## Core Technologies
+### **Single Task Focus**
 
-### AI Models & Analysis
+- Work on exactly one task at a time from `prompts/01-prototype.md` or active user prompt
+- Plan your approach before coding - ask for clarification if requirements are ambiguous
+- Only add code that is required for the current task
+- All new code must be exposed via the public interface (CLI commands or tests)
+- Remove any unused code immediately - no "dead" or speculative code
 
-- **InsightFace**: Face detection, recognition, and embedding extraction
-- **Moondream**: Vision-language model for composition classification
-- **CLIP**: Semantic embeddings for composition diversity
-- **MediaPipe**: Pose estimation and analysis
-- **BRISQUE**: Perceptual quality assessment using PIQ (PyTorch Image Quality) library
+### **Quality Gates**
 
-### Hardware Support
+- `make pre-commit` must pass before any commit, PR, or task completion
+- Type hints required on every function, method, and variable
+- Use Rich for user output, structlog for machine logs - never print()
+- Mock all external dependencies in tests (file I/O, network, AI models, hardware)
 
-- **CUDA GPUs**: Optimized for NVIDIA graphics cards with memory analysis
-- **Apple Silicon**: MPS backend support for M1/M2 Macs
-- **CPU Fallback**: Graceful degradation for systems without dedicated AI hardware
-- **Device Auto-Detection**: Intelligent device selection with manual override options
+### **Task Completion Process**
 
-## Development Standards
+1. Complete the implementation with tests
+2. Run `make pre-commit` and ensure it passes
+3. Update the task status in `prompts/01-prototype.md` with completion summary
+4. Update this `CLAUDE.md` if any new patterns or conventions were established
+5. Pause for review before moving to next task
 
-- **Type Safety**: Full type hints with mypy strict mode
-- **Code Quality**: Black formatting, isort imports, Ruff linting
-- **Testing**: Comprehensive pytest suite with >90% coverage
-- **Documentation**: Google-style docstrings throughout
+---
 
-## Development Workflow
+## Architecture Rules
 
-### Quick Start
+### **Service Layer Pattern**
 
-```bash
-# Setup development environment (first time only)
-make dev-setup
+- All business logic lives in `culora/services` - CLI only coordinates and displays
+- Use auto-initializing global service functions: `get_*_service()`
+- Services receive Pydantic config objects and handle all domain operations
+- Services should be stateless and thread-safe
 
-# Run complete development workflow
-make all
+### **Configuration System**
 
-# Show all available commands
-make help
-```
+- Pydantic models with strict validation in `culora/domain/models/config`
+- Loading hierarchy: CLI args > environment vars > config files > defaults
+- Environment variables follow `CULORA_<SECTION>_<FIELD>` pattern
+- Only add config options when required by current task
 
-### Makefile Commands
+### **Error Handling**
 
-The project includes a comprehensive Makefile for streamlined development. All commands use Poetry to manage dependencies and virtual environments.
+- Custom exceptions in `culora/core/exceptions` organized by domain
+- Proper exception chaining with context for debugging
+- User-friendly error messages via Rich console
+- Graceful degradation when possible
 
-#### **Setup Commands**
+---
 
-```bash
-make install     # Install dependencies with Poetry
-make dev-setup   # Complete development environment setup (includes install)
-```
-
-#### **Code Quality Commands**
-
-```bash
-make format      # Format code with Black and sort imports with isort
-make lint        # Run Ruff linter for code issues
-make typecheck   # Run mypy type checking
-make check       # Run all quality checks (format + lint + typecheck)
-```
-
-#### **Testing Commands**
-
-```bash
-make test        # Run pytest test suite
-make test-cov    # Run tests with HTML and terminal coverage reports
-```
-
-#### **Maintenance Commands**
-
-```bash
-make clean       # Remove cache files and build artifacts (__pycache__, .pytest_cache, etc.)
-make all         # Complete workflow: format + check + test
-```
-
-#### **Recommended Development Workflow**
-
-1. **Initial Setup** (one time):
-
-   ```bash
-   make dev-setup
-   ```
-
-2. **Before Committing Changes**:
-
-   ```bash
-   make all
-   ```
-
-   This runs formatting, linting, type checking, and tests in sequence.
-
-3. **During Development** (iterative):
-
-   ```bash
-   make check    # Quick quality checks without tests
-   make test     # Run tests when needed
-   ```
-
-4. **Troubleshooting**:
-
-   ```bash
-   make clean    # Clear caches if experiencing issues
-   make help     # Show all available commands
-   ```
-
-### Direct Poetry Commands (if needed)
-
-If you prefer to run tools directly or need custom options:
-
-```bash
-# Development tools
-poetry run black .                    # Format code
-poetry run isort .                    # Sort imports  
-poetry run ruff check .               # Lint for issues
-poetry run mypy .                     # Type checking
-poetry run pytest                     # Run tests
-poetry run pytest --cov=culora        # Run tests with coverage
-poetry run pytest -v                 # Verbose test output
-poetry run pytest tests/unit/services/   # Run service layer tests
-poetry run pytest tests/unit/domain/     # Run domain model tests
-```
-
-## Project Structure
+## Directory Organization
 
 ```txt
 culora/
-├── culora/
-│   ├── core/          # Foundation: exception hierarchy
-│   │   └── exceptions/ # Modular exception classes (config, device, culora)
-│   ├── domain/        # Domain-driven design models and enums
-│   │   ├── enums/     # Type-safe enums (device types, log levels)
-│   │   └── models/    # Domain models (device, memory, config)
-│   ├── services/      # Service layer (config, device, memory services)
-│   └── utils/         # Shared utilities (logging)
-├── tests/             # Best-practice test organization
-│   ├── conftest.py    # Shared pytest fixtures
-│   ├── helpers/       # Test utilities (factories, assertions, file utils)
-│   ├── mocks/         # Mock implementations (PyTorch, AI models)
-│   ├── fixtures/      # Static test data and configurations
-│   ├── unit/          # Unit tests organized by domain
-│   └── integration/   # Integration and workflow tests
-├── pyproject.toml     # Poetry configuration with all dependencies
-├── Makefile          # Development workflow automation
-└── README.md
+├── cli/           # CLI layer only - no business logic
+├── services/      # All business logic and external integrations
+├── domain/        # Type definitions, Pydantic models, enums
+├── core/          # Exception hierarchy, base classes
+└── utils/         # Non-domain utilities (logging, app directories)
+
+tests/
+├── unit/          # Unit tests mirroring source structure
+├── integration/   # End-to-end workflow tests
+├── helpers/       # Reusable test utilities
+├── mocks/         # Centralized mock implementations
+└── fixtures/      # Static test data
 ```
 
-## Current Implementation
+---
 
-### Domain-Driven Architecture
+## Testing Standards
 
-**Domain Layer** (`culora/domain/`):
+### **Test Organization**
 
-- **Enums** (`enums/`): Type-safe enumerations for device types and log levels
-- **Models** (`models/`): Domain models for devices, memory, configuration, images, and faces
-- **Config Models** (`models/config/`): Pydantic configuration models with full validation including ImageConfig and FaceAnalysisConfig
-- **Image Models** (`models/image.py`): Comprehensive image metadata and processing result models
-- **Face Models** (`models/face.py`): Face detection models with bounding boxes, embeddings, and batch processing results
+- Test files: `test_<unit>.py`, Test classes: `Test<Component>`
+- Unit tests in `tests/unit/` mirroring source structure
+- Integration tests in `tests/integration/` for complete workflows
+- Use helpers from `tests/helpers/` for common operations
 
-**Service Layer** (`culora/services/`):
+### **Mocking Requirements**
 
-- **Config Service** (`config_service.py`): Multi-source configuration management with Typer app directory integration and property-based source tracking
-- **Device Service** (`device_service.py`): Intelligent hardware detection with CUDA/MPS/CPU support
-- **Memory Service** (`memory_service.py`): Memory management and tracking
-- **Image Service** (`image_service.py`): Comprehensive image loading, directory scanning, and batch processing with validation and metadata extraction
-- **Face Analysis Service** (`face_analysis_service.py`): InsightFace integration for face detection, embedding extraction, and landmark analysis
+- Mock all file I/O - use `temp_dir` fixtures
+- Mock all AI models - use `tests/mocks/ai_model_mocks.py`
+- Mock all hardware - use `tests/mocks/pytorch_mocks.py`
+- Mock all network operations
+- Test the interface/contract, not implementation details
 
-**Core Foundation** (`culora/core/`):
+### **Coverage Expectations**
 
-- **Exception Hierarchy** (`exceptions/`): Modular exception classes organized by domain (config, device, culora)
+- Cover happy path and likely error scenarios
+- Don't over-engineer edge cases unless specified
+- Keep tests focused and maintainable
+- Use fixtures and helpers to reduce duplication
 
-**CLI Layer** (`culora/cli/`):
+---
 
-- **Application** (`app.py`): Main Typer application with global error handling
-- **Commands** (`commands/`): Modular command implementations (config, device, images, faces)
-- **Display** (`display/`): Rich console components and theming
-- **Validation** (`validation/`): CLI argument validators with proper error handling
+## Code Style & Quality
 
-**Utilities** (`culora/utils/`):
+### **Python Standards**
 
-- **Structured Logging** (`logging.py`): Production-ready JSON logging separate from Rich UI
-- **App Directory Management** (`app_dir.py`): Cross-platform Typer app directory utilities for config, cache, and model storage
+- Python 3.12+ with modern syntax (X | Y unions, updated annotations)
+- Black formatting, isort imports, Ruff linting, mypy strict typing
+- Google-style docstrings for public APIs
+- snake_case for functions/vars, PascalCase for classes, UPPER_SNAKE for constants
 
-### Modern Test Infrastructure (`tests/`)
+### **Makefile Commands**
 
-- **Test Organization**: Industry-standard structure with helpers, mocks, fixtures, unit, and integration directories
-- **Test Helpers** (`helpers/`): Modular utilities including ConfigBuilder factory, AssertionHelpers, TempFileHelper, and ImageFixtures
-- **Mock Implementations** (`mocks/`): Centralized PyTorch/CUDA mocking with MockContext utility
-- **Static Fixtures** (`fixtures/`): Reusable test data and configuration files
-- **Unit Tests** (`unit/`): Organized by domain (services, domain models, CLI) with comprehensive coverage including face analysis
-- **Integration Tests** (`integration/`): End-to-end workflow testing including full CLI integration
-- **Comprehensive Coverage**: Modern test organization with 100% type safety
+- `make pre-commit` - Complete workflow (format, check, test) - REQUIRED before review
+- `make check` - Quick quality checks (format, lint, typecheck)
+- `make dev-setup` - Initial environment setup
+- Only use Poetry directly for exceptional cases
 
-**Test Structure Benefits:**
+---
 
-- **Maintainability**: Clear separation of test utilities, mocks, and test categories
-- **Reusability**: Modular helpers easily shared across test files (e.g., `from tests.helpers import ConfigBuilder`)
-- **Scalability**: Easy to add new test utilities and organize future AI model tests
-- **Best Practices**: Follows Python testing industry standards with proper imports and organization
+## CLI Development
 
-### Development Tooling
+### **Command Structure**
 
-- **Dependencies**: All AI model and development tool dependencies configured and updated to latest versions (Python 3.12, Ruff 0.12.5, Black 25.1.0, mypy 1.14.1)
-- **Quality Tools**: Black, isort, Ruff, mypy, pytest with optimal configurations
-- **Architecture**: Clean domain-driven design with service layer pattern and modern CLI
-- **CLI Implementation**: Typer-based CLI with Rich integration, comprehensive validation, and beautiful output
-- **Test Infrastructure**: Industry-standard test organization with helpers, mocks, and fixtures
-- **Automation**: Comprehensive Makefile for development workflow
-
-### Recent Architecture Improvements
-
-**Task 2.3 Completion - Image Loading and Directory Processing Service**:
-
-- **Image Service Architecture**: Complete image loading, directory scanning, and batch processing with memory-efficient generator patterns
-- **Configuration Integration**: New ImageConfig with comprehensive validation and environment variable support
-- **Domain Models**: Rich image metadata models with validation status and error categorization
-- **CLI Commands**: Image management commands (scan, validate, info, formats) with beautiful Rich output
-- **Test Infrastructure**: ImageFixtures helper for comprehensive image testing scenarios
-- **Error Handling**: Robust error categorization for corrupted files, unsupported formats, and permission issues
-
-**ConfigService Refactoring**:
-
-- Eliminated duplicate state tracking between `_config_sources` and `_config_file`
-- Implemented property-based `config_sources` that derives source information dynamically
-- Simplified internal state management while maintaining identical public API
-- Reduced potential for synchronization bugs between redundant state variables
-
-**CLI Implementation Architecture**:
-
-- Clean separation between CLI layer and business logic services
-- Global service instances with lazy initialization pattern
-- Rich theming system for consistent visual styling
+- Commands organized by domain in `culora/cli/commands/`
+- Register new commands in `culora/cli/app.py`
+- Use Rich for beautiful output with consistent theming
 - Comprehensive argument validation with helpful error messages
-- Proper exception chaining and error handling throughout CLI commands
 
-## Implementation Plan
+### **User Experience**
 
-For comprehensive implementation details and task breakdowns, see [@prompts/01-prototype.md](prompts/01-prototype.md).
+- All user-facing output through Rich console
+- Structured logs go to files, not terminal
+- Progress bars for long operations
+- Clear error messages with suggested solutions
+
+---
+
+## Current Project State
+
+### **Service Architecture**
+
+The project uses a clean service layer with these established patterns:
+
+- `get_config_service()` - Configuration management
+- `get_device_service()` - Hardware detection and optimization
+- `get_image_service()` - Image loading and processing
+- `get_face_analysis_service()` - Face detection with InsightFace
+
+### **AI Model Integration**
+
+- InsightFace for face detection with device optimization
+- Output suppression for chatty third-party libraries
+- Cross-platform model caching using Typer app directories
+- Batch processing with memory-aware sizing
+
+### **Implementation Status**
+
+See `prompts/01-prototype.md` for complete roadmap and current progress. Update that file with task completion summaries, not this one.
+
+---
+
+## Anti-Patterns (Never Do)
+
+- Business logic in CLI modules
+- Global state (except documented service singletons)
+- Real external calls in tests
+- Code additions without current task justification
+- Skipping quality checks to move faster
+- print() statements or direct stdout writes
+
+---
+
+## Quick Reference
+
+**Add CLI command:** Create in `culora/cli/commands/`, register in `app.py`, test interface
+**Add service:** Implement in `culora/services/`, add domain models, create global accessor
+**Add config:** Extend Pydantic models, add environment mapping, update CLI if needed
+**Debug issues:** Check `make pre-commit`, verify mocks in tests, use Rich for user feedback
+
+---
+
+## Critical Dependencies
+
+- **Typer + Rich:** CLI framework with beautiful terminal output
+- **Pydantic:** Type-safe configuration with validation
+- **InsightFace + ONNX:** Face detection with device optimization
+- **Pillow + OpenCV:** Image processing foundation
+- **pytest + mocks:** Testing with external dependency isolation
+
+---
+
+## Agent Behavior
+
+- Act like a methodical, quality-focused Python developer
+- Always ask for clarification when requirements are unclear
+- Update this file when new patterns or conventions are established
+- Document key decisions and trade-offs
+- Maintain discipline around single-task focus and quality gates
+
+---
+
+## Initiatives
+
+- [`prompts/01-prototype.md`](prompts/01-prototype.md) – Culora V1 Implementation Plan (update with task progress)

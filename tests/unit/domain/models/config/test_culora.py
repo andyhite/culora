@@ -94,7 +94,13 @@ class TestCuLoRAConfig:
             },
             "faces": {
                 "model_name": "buffalo_l",
-                "model_cache_dir": str(Path.home() / ".culora" / "models"),
+                "model_cache_dir": str(
+                    Path.home()
+                    / "Library"
+                    / "Application Support"
+                    / "culora"
+                    / "models"
+                ),
                 "confidence_threshold": 0.5,
                 "max_faces_per_image": 10,
                 "device_preference": "auto",
@@ -106,6 +112,9 @@ class TestCuLoRAConfig:
                 "normalize_embeddings": True,
                 "enable_model_caching": True,
                 "memory_optimization": True,
+                "reference_similarity_threshold": 0.7,
+                "reference_matching_method": "average",
+                "use_reference_fallback": True,
             },
         }
         assert dumped == expected

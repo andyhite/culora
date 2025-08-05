@@ -369,6 +369,63 @@ class FaceAnalysisService:
             face_batch_result = self.analyze_batch(batch_result.results)
             yield face_batch_result
 
+    def analyze_with_reference(
+        self,
+        image_result: ImageLoadResult,
+        reference_service: Any | None = None,
+        reference_set: Any | None = None,
+    ) -> FaceAnalysisResult:
+        """Analyze faces in image with optional reference matching for primary face selection.
+
+        Args:
+            image_result: Result from ImageService containing loaded image
+            reference_service: Optional FaceReferenceService instance for dependency injection
+            reference_set: Optional ReferenceSet for primary face selection
+
+        Returns:
+            Face analysis result with primary face selected based on reference matching
+        """
+        # Perform standard face analysis first
+        face_result = self.analyze_image(image_result)
+
+        # If analysis failed or no reference set provided, return as-is
+        if not face_result.success or reference_set is None or not face_result.faces:
+            return face_result
+
+        # Use injected reference service for primary face selection
+        if reference_service is not None:
+            try:
+                primary_face = reference_service.select_primary_face(
+                    face_result.faces, reference_set
+                )
+
+                # If we found a primary face, reorder the faces list to put it first
+                if primary_face is not None:
+                    faces_reordered = [primary_face]
+                    faces_reordered.extend(
+                        [f for f in face_result.faces if f != primary_face]
+                    )
+
+                    # Create new result with reordered faces
+                    return FaceAnalysisResult(
+                        image_path=face_result.image_path,
+                        success=face_result.success,
+                        faces=faces_reordered,
+                        processing_duration=face_result.processing_duration,
+                        processed_at=face_result.processed_at,
+                        image_width=face_result.image_width,
+                        image_height=face_result.image_height,
+                        error=face_result.error,
+                        error_code=face_result.error_code,
+                    )
+
+            except Exception as e:
+                logger.warning(
+                    "Reference matching failed, returning original result", error=str(e)
+                )
+
+        return face_result
+
     def get_model_info(self) -> dict[str, str]:
         """Get information about the loaded model.
 

@@ -3,12 +3,9 @@
 from datetime import datetime
 from pathlib import Path
 
-import pytest
-
 from culora.domain import FaceAnalysisConfig, ImageLoadResult, ImageMetadata
 from culora.services.face_analysis_service import (
     FaceAnalysisService,
-    FaceAnalysisServiceError,
     get_face_analysis_service,
     initialize_face_analysis_service,
 )
@@ -97,13 +94,14 @@ class TestFaceAnalysisServiceGlobalInstance:
         assert retrieved_service is original_service
 
     def test_get_face_analysis_service_not_initialized(self) -> None:
-        """Test getting face analysis service before initialization."""
+        """Test getting face analysis service before initialization auto-initializes."""
         # Reset global service
         import culora.services.face_analysis_service
 
         culora.services.face_analysis_service._face_analysis_service = None
 
-        with pytest.raises(FaceAnalysisServiceError) as exc_info:
-            get_face_analysis_service()
+        # Should auto-initialize and return a service instance
+        service = get_face_analysis_service()
 
-        assert "FaceAnalysisService not initialized" in str(exc_info.value)
+        assert service is not None
+        assert isinstance(service, FaceAnalysisService)

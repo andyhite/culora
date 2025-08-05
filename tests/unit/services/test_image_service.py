@@ -270,13 +270,14 @@ class TestImageServiceGlobalInstance:
         assert retrieved_service is original_service
 
     def test_get_image_service_not_initialized(self) -> None:
-        """Test getting image service before initialization."""
+        """Test getting image service before initialization auto-initializes."""
         # Reset global service
         import culora.services.image_service
 
         culora.services.image_service._image_service = None
 
-        with pytest.raises(ImageServiceError) as exc_info:
-            get_image_service()
+        # Should auto-initialize and return a service instance
+        service = get_image_service()
 
-        assert "ImageService not initialized" in str(exc_info.value)
+        assert service is not None
+        assert isinstance(service, ImageService)

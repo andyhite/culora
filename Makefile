@@ -1,4 +1,4 @@
-.PHONY: install format lint typecheck test test-cov clean dev-setup check all help
+.PHONY: install format lint typecheck test test-cov clean dev-setup check pre-commit help
 
 # Default target
 help:
@@ -21,7 +21,7 @@ help:
 	@echo ""
 	@echo "Maintenance:"
 	@echo "  clean       Remove cache files and build artifacts"
-	@echo "  all         Run complete workflow (format, check, test)"
+	@echo "  pre-commit  Run complete workflow (format, check, test)"
 
 # Installation and setup
 install:
@@ -76,18 +76,9 @@ clean:
 	@echo "Clean complete!"
 
 # Complete workflow
-all: format check test
+pre-commit: format check test
 	@echo ""
-	@echo "🎉 Complete workflow finished successfully!"
+	@echo "🎉 Pre-commit finished successfully!"
 	@echo "   - Code formatted"
 	@echo "   - Quality checks passed"
 	@echo "   - Tests passed"
-
-# CLI commands for quick access
-run-version:
-	@echo "Running CuLoRA version command..."
-	@poetry run culora version
-
-run-help:
-	@echo "Showing CuLoRA help..."
-	@poetry run culora --help

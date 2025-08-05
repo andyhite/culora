@@ -13,6 +13,7 @@ from culora.core import ConfigError, CuLoRAError
 from culora.services.config_service import get_config_service
 from culora.services.device_service import get_device_service
 from culora.services.face_analysis_service import get_face_analysis_service
+from culora.services.face_reference_service import get_face_reference_service
 from culora.services.image_service import get_image_service
 from culora.services.memory_service import get_memory_service
 
@@ -57,6 +58,7 @@ def main(
             get_memory_service()
             get_image_service()
             get_face_analysis_service()
+            get_face_reference_service()
 
         except Exception as e:
             console.error(f"Failed to initialize services: {e}")

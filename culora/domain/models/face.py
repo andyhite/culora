@@ -75,6 +75,11 @@ class FaceDetection:
         """Check if face has landmark points."""
         return self.landmarks is not None
 
+    @property
+    def area(self) -> float:
+        """Get bounding box area."""
+        return self.bbox_width * self.bbox_height
+
 
 @dataclass(frozen=True)
 class FaceAnalysisResult:

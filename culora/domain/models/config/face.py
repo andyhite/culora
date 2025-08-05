@@ -78,6 +78,22 @@ class FaceAnalysisConfig(BaseModel):
         description="Enable memory optimization for large batch processing",
     )
 
+    # Reference matching configuration
+    reference_similarity_threshold: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Minimum similarity threshold for reference matching",
+    )
+    reference_matching_method: Literal["average", "max", "min"] = Field(
+        default="average",
+        description="Method for combining multiple reference similarities",
+    )
+    use_reference_fallback: bool = Field(
+        default=True,
+        description="Fall back to largest face when reference matching fails",
+    )
+
     @field_validator("model_cache_dir")
     @classmethod
     def validate_model_cache_dir(cls, v: Path | str) -> Path:

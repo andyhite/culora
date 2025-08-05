@@ -83,7 +83,7 @@ This project uses modern Python development tools with automated quality checks:
 
 ```bash
 # Complete development workflow
-make all                 # Format, check, and test everything
+make pre-commit                 # Format, check, and test everything
 
 # Individual commands
 make format             # Format code with Black + isort
@@ -176,7 +176,7 @@ See [CLAUDE.md](CLAUDE.md) for detailed development information and architecture
 
 Before submitting changes:
 
-1. Run the complete workflow: `make all`
+1. Run the complete workflow: `make pre-commit`
 2. Ensure all tests pass and code quality checks succeed
 3. Add tests for new functionality
 4. Update documentation as needed

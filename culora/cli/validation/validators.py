@@ -208,3 +208,86 @@ def convert_config_value(value: str) -> Any:
 
     # Return as string
     return value
+
+
+def validate_file_path(value: str | None) -> Path | None:
+    """Validate file or directory path for reading.
+
+    Args:
+        value: File or directory path string
+
+    Returns:
+        Validated Path object or None
+
+    Raises:
+        typer.BadParameter: If path doesn't exist or isn't accessible
+    """
+    if value is None:
+        return None
+
+    path = Path(value)
+
+    if not path.exists():
+        raise typer.BadParameter(f"Path does not exist: {path}")
+
+    try:
+        # Test if path is accessible
+        if path.is_file():
+            with open(path, "rb"):
+                pass
+        elif path.is_dir():
+            list(path.iterdir())  # Test directory access
+        else:
+            raise typer.BadParameter(f"Path is neither file nor directory: {path}")
+    except PermissionError as e:
+        raise typer.BadParameter(f"Cannot access path: {path}") from e
+    except Exception as e:
+        raise typer.BadParameter(f"Error accessing path {path}: {e}") from e
+
+    return path
+
+
+def validate_write_path(value: str | None) -> Path | None:
+    """Validate file path for writing (allows creation).
+
+    Args:
+        value: File path string
+
+    Returns:
+        Validated Path object or None
+
+    Raises:
+        typer.BadParameter: If path is invalid or not writable
+    """
+    if value is None:
+        return None
+
+    path = Path(value)
+
+    # If file exists, check that it's writable
+    if path.exists():
+        if not path.is_file():
+            raise typer.BadParameter(f"Path exists but is not a file: {path}")
+
+        try:
+            # Test write access
+            with open(path, "a"):
+                pass
+        except PermissionError as e:
+            raise typer.BadParameter(f"Cannot write to file: {path}") from e
+        except Exception as e:
+            raise typer.BadParameter(f"Error accessing file {path}: {e}") from e
+    else:
+        # File doesn't exist, check if parent directory exists or can be created
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+        except PermissionError as e:
+            raise typer.BadParameter(
+                f"Cannot create parent directory: {path.parent}"
+            ) from e
+        except Exception as e:
+            raise typer.BadParameter(
+                f"Error creating parent directory for {path}: {e}"
+            ) from e
+
+    return path

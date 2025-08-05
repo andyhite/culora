@@ -47,6 +47,14 @@ def _get_image_service() -> ImageService:
 @faces_app.command("detect")
 def detect_faces_in_directory(
     directory: Annotated[Path, typer.Argument(help="Directory to scan for faces")],
+    reference_images: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--reference",
+            "-r",
+            help="Reference image files for the target person (can be used multiple times)",
+        ),
+    ] = None,
     show_progress: Annotated[
         bool, typer.Option("--progress/--no-progress", help="Show processing progress")
     ] = True,
@@ -69,6 +77,41 @@ def detect_faces_in_directory(
 
         face_service = _get_face_analysis_service()
 
+        # Load reference set if provided
+        reference_service = None
+        reference_set = None
+        if reference_images is not None and reference_images:
+            # Validate that all reference images exist
+            for ref_path in reference_images:
+                if not ref_path.exists() or not ref_path.is_file():
+                    console.error(
+                        f"Reference image does not exist or is not a file: {ref_path}"
+                    )
+                    raise typer.Exit(1)
+
+            try:
+                from culora.services.face_reference_service import (
+                    get_face_reference_service,
+                )
+
+                reference_service = get_face_reference_service()
+                reference_set = reference_service.create_reference_set_from_images(
+                    reference_images
+                )
+
+                if not reference_set.valid_images:
+                    console.warning(
+                        f"No valid reference images found in the provided {len(reference_images)} files"
+                    )
+                else:
+                    console.info(
+                        f"Loaded reference set: {len(reference_set.valid_images)} images, "
+                        f"{reference_set.total_embeddings} face embeddings"
+                    )
+            except Exception as e:
+                console.error(f"Failed to load reference images: {e}")
+                raise typer.Exit(1) from e
+
         # Process directory in batches
         total_images = 0
         total_faces = 0
@@ -78,22 +121,66 @@ def detect_faces_in_directory(
 
         try:
             if show_progress:
-                console.info("Processing images in batches...")
+                processing_msg = "Processing images in batches"
+                if reference_set is not None:
+                    processing_msg += " with reference matching"
+                console.info(processing_msg + "...")
 
-            for batch_result in face_service.analyze_directory_batch(
-                directory, batch_size
-            ):
-                total_images += batch_result.total_images
-                total_faces += batch_result.total_faces_detected
-                successful_analyses += batch_result.successful_analyses
-                failed_analyses += batch_result.failed_analyses
-                images_with_faces += batch_result.images_with_faces
+            # If we have a reference set, we need to process individually to use reference matching
+            if reference_set is not None and reference_service is not None:
+                image_service = _get_image_service()
 
-                if show_progress:
-                    console.info(
-                        f"Processed batch: {batch_result.total_images} images, "
-                        f"{batch_result.total_faces_detected} faces detected"
-                    )
+                # Get all image files first
+                image_files: list[Path] = []
+                for format_ext in image_service.get_supported_formats():
+                    image_files.extend(directory.glob(f"*{format_ext}"))
+                    image_files.extend(directory.glob(f"*{format_ext.upper()}"))
+
+                # Process each image with reference matching
+                for image_path in image_files:
+                    try:
+                        # Load the image
+                        image_result = image_service.load_image(image_path)
+
+                        # Analyze with reference matching
+                        face_result = face_service.analyze_with_reference(
+                            image_result, reference_service, reference_set
+                        )
+
+                        total_images += 1
+                        if face_result.success:
+                            successful_analyses += 1
+                            if face_result.has_faces:
+                                images_with_faces += 1
+                                total_faces += len(face_result.faces)
+                        else:
+                            failed_analyses += 1
+
+                        if show_progress and total_images % batch_size == 0:
+                            console.info(
+                                f"Processed {total_images} images, "
+                                f"{total_faces} faces detected"
+                            )
+                    except Exception as e:
+                        failed_analyses += 1
+                        if show_progress:
+                            console.warning(f"Failed to process {image_path}: {e}")
+            else:
+                # Use standard batch processing without reference matching
+                for batch_result in face_service.analyze_directory_batch(
+                    directory, batch_size
+                ):
+                    total_images += batch_result.total_images
+                    total_faces += batch_result.total_faces_detected
+                    successful_analyses += batch_result.successful_analyses
+                    failed_analyses += batch_result.failed_analyses
+                    images_with_faces += batch_result.images_with_faces
+
+                    if show_progress:
+                        console.info(
+                            f"Processed batch: {batch_result.total_images} images, "
+                            f"{batch_result.total_faces_detected} faces detected"
+                        )
 
         except FaceAnalysisServiceError as e:
             console.error(f"Face analysis failed: {e}")
@@ -135,6 +222,14 @@ def detect_faces_in_directory(
 @faces_app.command("analyze")
 def analyze_single_image(
     image_path: Annotated[Path, typer.Argument(help="Path to image file")],
+    reference_images: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--reference",
+            "-r",
+            help="Reference image files for the target person (can be used multiple times)",
+        ),
+    ] = None,
 ) -> None:
     """Analyze faces in a single image with detailed results."""
     try:
@@ -152,9 +247,49 @@ def analyze_single_image(
             console.error(f"Failed to load image: {image_result.error}")
             raise typer.Exit(1)
 
+        # Load reference set if provided
+        reference_service = None
+        reference_set = None
+        if reference_images is not None and reference_images:
+            # Validate that all reference images exist
+            for ref_path in reference_images:
+                if not ref_path.exists() or not ref_path.is_file():
+                    console.error(
+                        f"Reference image does not exist or is not a file: {ref_path}"
+                    )
+                    raise typer.Exit(1)
+
+            try:
+                from culora.services.face_reference_service import (
+                    get_face_reference_service,
+                )
+
+                reference_service = get_face_reference_service()
+                reference_set = reference_service.create_reference_set_from_images(
+                    reference_images
+                )
+
+                if not reference_set.valid_images:
+                    console.warning(
+                        f"No valid reference images found in the provided {len(reference_images)} files"
+                    )
+                else:
+                    console.info(
+                        f"Loaded reference set: {len(reference_set.valid_images)} images, "
+                        f"{reference_set.total_embeddings} face embeddings"
+                    )
+            except Exception as e:
+                console.error(f"Failed to load reference images: {e}")
+                raise typer.Exit(1) from e
+
         # Analyze faces
         face_service = _get_face_analysis_service()
-        face_result = face_service.analyze_image(image_result)
+        if reference_set is not None and reference_service is not None:
+            face_result = face_service.analyze_with_reference(
+                image_result, reference_service, reference_set
+            )
+        else:
+            face_result = face_service.analyze_image(image_result)
 
         if not face_result.success:
             console.error(f"Face analysis failed: {face_result.error}")
