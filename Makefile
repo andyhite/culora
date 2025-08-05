@@ -57,11 +57,11 @@ check: format lint typecheck
 # Testing
 test:
 	@echo "Running pytest test suite..."
-	@poetry run pytest
+	@PYTHONWARNINGS="ignore::DeprecationWarning:google._upb._message" poetry run pytest
 
 test-cov:
 	@echo "Running tests with coverage..."
-	@poetry run pytest --cov=culora --cov-report=html --cov-report=term
+	@PYTHONWARNINGS="ignore::DeprecationWarning:google._upb._message" poetry run pytest --cov=culora --cov-report=html --cov-report=term
 
 # Maintenance
 clean:

@@ -27,7 +27,7 @@ from culora.domain.models.selection import (
     SelectionSummary,
 )
 from culora.services.clip_service import get_clip_service
-from culora.services.duplicate import get_duplicate_service
+from culora.services.duplicate_service import get_duplicate_service
 from culora.services.pose_service import get_pose_service
 from culora.services.quality_service import get_quality_service
 

@@ -44,6 +44,15 @@ def get_models_dir() -> Path:
     return get_app_dir() / "models"
 
 
+def get_logs_dir() -> Path:
+    """Get the logs directory within the app directory.
+
+    Returns:
+        Path to the logs directory
+    """
+    return get_app_dir() / "logs"
+
+
 def get_default_config_file() -> Path:
     """Get the default configuration file path.
 
@@ -59,3 +68,4 @@ def ensure_app_directories() -> None:
     get_config_dir().mkdir(parents=True, exist_ok=True)
     get_cache_dir().mkdir(parents=True, exist_ok=True)
     get_models_dir().mkdir(parents=True, exist_ok=True)
+    get_logs_dir().mkdir(parents=True, exist_ok=True)

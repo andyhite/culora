@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import Any
 
 import imagehash
-import structlog
 from PIL import Image
 
 from culora.core.exceptions import CuLoRAImageError, CuLoRAServiceError
@@ -19,8 +18,9 @@ from culora.domain.models.duplicate import (
     HashAlgorithm,
     ImageHash,
 )
+from culora.utils import get_logger
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class DuplicateService:

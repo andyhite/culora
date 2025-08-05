@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from culora.utils.app_dir import get_models_dir
+
 
 class CompositionConfig(BaseModel):
     """Configuration for composition analysis using vision-language models."""
@@ -15,11 +17,7 @@ class CompositionConfig(BaseModel):
         description="Hugging Face model identifier for vision-language model",
     )
     model_cache_dir: Path = Field(
-        default_factory=lambda: Path.home()
-        / "Library"
-        / "Application Support"
-        / "culora"
-        / "composition_models",
+        default_factory=lambda: get_models_dir() / "composition",
         description="Directory to cache composition analysis models",
     )
     device_preference: str = Field(

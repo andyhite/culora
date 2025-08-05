@@ -530,7 +530,14 @@ class PoseService:
         v2 = np.array([point3.x - point2.x, point3.y - point2.y])
 
         # Calculate angle
-        cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        norm1 = np.linalg.norm(v1)
+        norm2 = np.linalg.norm(v2)
+
+        # Handle zero-length vectors to avoid division by zero
+        if norm1 == 0 or norm2 == 0:
+            return 0.0
+
+        cos_angle = np.dot(v1, v2) / (norm1 * norm2)
         cos_angle = np.clip(cos_angle, -1.0, 1.0)
         angle = np.arccos(cos_angle)
         return float(np.degrees(angle))

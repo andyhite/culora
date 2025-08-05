@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from culora.domain.enums import LogLevel
 from culora.domain.enums.device_types import DeviceType
 from culora.domain.models.config import CuLoRAConfig, DeviceConfig, LoggingConfig
+from culora.utils.app_dir import get_models_dir
 
 from .....helpers import AssertionHelpers, ConfigBuilder
 
@@ -94,13 +95,7 @@ class TestCuLoRAConfig:
             },
             "faces": {
                 "model_name": "buffalo_l",
-                "model_cache_dir": str(
-                    Path.home()
-                    / "Library"
-                    / "Application Support"
-                    / "culora"
-                    / "models"
-                ),
+                "model_cache_dir": str(get_models_dir()),
                 "confidence_threshold": 0.5,
                 "max_faces_per_image": 10,
                 "device_preference": "auto",
@@ -142,13 +137,7 @@ class TestCuLoRAConfig:
             },
             "composition": {
                 "model_name": "vikhyatk/moondream2",
-                "model_cache_dir": str(
-                    Path.home()
-                    / "Library"
-                    / "Application Support"
-                    / "culora"
-                    / "composition_models"
-                ),
+                "model_cache_dir": str(get_models_dir() / "composition"),
                 "device_preference": "auto",
                 "enable_shot_type_analysis": True,
                 "enable_scene_analysis": True,
@@ -171,13 +160,7 @@ class TestCuLoRAConfig:
             },
             "clip": {
                 "model_name": "openai/clip-vit-base-patch32",
-                "model_cache_dir": str(
-                    Path.home()
-                    / "Library"
-                    / "Application Support"
-                    / "culora"
-                    / "clip_models"
-                ),
+                "model_cache_dir": str(get_models_dir() / "clip"),
                 "device_preference": "auto",
                 "normalize_embeddings": True,
                 "embedding_precision": "float32",

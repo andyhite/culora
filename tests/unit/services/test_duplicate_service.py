@@ -16,7 +16,7 @@ from culora.domain.models.duplicate import (
     HashAlgorithm,
     ImageHash,
 )
-from culora.services.duplicate import DuplicateService, get_duplicate_service
+from culora.services.duplicate_service import DuplicateService, get_duplicate_service
 
 
 class TestDuplicateService:
@@ -50,8 +50,8 @@ class TestDuplicateService:
             paths.append(path)
         return paths
 
-    @patch("culora.services.duplicate.Image.open")
-    @patch("culora.services.duplicate.imagehash.phash")
+    @patch("culora.services.duplicate_service.Image.open")
+    @patch("culora.services.duplicate_service.imagehash.phash")
     def test_calculate_hash_success(
         self,
         mock_phash: Mock,
@@ -115,7 +115,7 @@ class TestDuplicateService:
         ]
 
         with patch(
-            "culora.services.duplicate.imagehash.hex_to_hash"
+            "culora.services.duplicate_service.imagehash.hex_to_hash"
         ) as mock_hex_to_hash:
             # Create mock hash objects that return expected distances
             mock_hash1 = Mock()

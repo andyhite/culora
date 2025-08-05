@@ -14,6 +14,7 @@ import structlog
 
 from culora.core.exceptions import CuLoRAError
 from culora.domain.enums import LogLevel
+from culora.utils.app_dir import get_logs_dir
 
 
 class LoggingService:
@@ -83,7 +84,7 @@ def setup_logging(
         console_output: Whether to also output logs to console (for development)
     """
     if log_dir is None:
-        log_dir = Path("logs")
+        log_dir = get_logs_dir()
 
     log_dir.mkdir(exist_ok=True)
 

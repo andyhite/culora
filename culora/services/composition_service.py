@@ -175,7 +175,7 @@ class CompositionService:
 
         try:
             # Get optimal device
-            device_info = self.device_service._get_optimal_device()
+            device_info = self.device_service.get_selected_device()
             device_str = device_info.device_type.value
             if device_str == "cuda":
                 self._device = torch.device("cuda")

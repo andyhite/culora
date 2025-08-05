@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 from culora.domain.enums.clip import CLIPModelType, ClusteringMethod, SimilarityMetric
+from culora.utils.app_dir import get_models_dir
 
 
 class CLIPConfig(BaseModel):
@@ -17,11 +18,7 @@ class CLIPConfig(BaseModel):
         description="CLIP model variant to use for embeddings",
     )
     model_cache_dir: Path = Field(
-        default_factory=lambda: Path.home()
-        / "Library"
-        / "Application Support"
-        / "culora"
-        / "clip_models",
+        default_factory=lambda: get_models_dir() / "clip",
         description="Directory to cache CLIP models",
     )
     device_preference: str = Field(

@@ -1,6 +1,7 @@
 """Shared test fixtures and configuration."""
 
 import tempfile
+import warnings
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
@@ -261,10 +262,11 @@ def environment_vars() -> dict[str, str]:
 
 
 def pytest_configure(config: Any) -> None:
-    """Configure pytest with custom markers."""
+    """Configure pytest with custom markers and warning filters."""
     config.addinivalue_line("markers", "integration: marks tests as integration tests")
     config.addinivalue_line("markers", "slow: marks tests as slow running")
     config.addinivalue_line("markers", "gpu: marks tests that require GPU hardware")
     config.addinivalue_line(
         "markers", "mps: marks tests that require Apple Silicon MPS"
     )
+
