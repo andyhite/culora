@@ -209,6 +209,21 @@ def _display_single_result(
                 "BRISQUE no-reference quality assessment",
             )
 
+        # Show bonuses if present
+        if score.face_quality_bonus is not None:
+            table.add_row(
+                "Face Quality Bonus",
+                f"+{score.face_quality_bonus:.3f}",
+                "Based on face detection confidence and size",
+            )
+
+        if score.reference_match_bonus is not None:
+            table.add_row(
+                "Reference Match Bonus",
+                f"+{score.reference_match_bonus:.3f}",
+                "Based on reference similarity matching",
+            )
+
     if show_details and metrics:
         table.add_row(
             "Sharpness",

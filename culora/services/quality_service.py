@@ -3,6 +3,7 @@
 import statistics
 import time
 from pathlib import Path
+from typing import Any
 
 import cv2
 import numpy as np
@@ -58,12 +59,20 @@ class QualityService:
         self.quality_config = config.quality
         logger.info("Quality service initialized")
 
-    def analyze_image(self, image: Image.Image, path: Path) -> ImageQualityResult:
+    def analyze_image(
+        self,
+        image: Image.Image,
+        path: Path,
+        face_detections: list[Any] | None = None,
+        reference_matches: list[Any] | None = None,
+    ) -> ImageQualityResult:
         """Analyze quality metrics for a single image.
 
         Args:
             image: PIL Image to analyze
             path: Path to the image file for error reporting
+            face_detections: Optional face detection results for quality bonuses
+            reference_matches: Optional reference similarity matches for bonuses
 
         Returns:
             Complete quality analysis result
@@ -81,7 +90,9 @@ class QualityService:
             perceptual_metrics = self._calculate_perceptual_metrics(analysis_image)
 
             # Calculate composite quality score
-            score = self._calculate_quality_score(metrics, perceptual_metrics)
+            score = self._calculate_quality_score(
+                metrics, perceptual_metrics, face_detections, reference_matches
+            )
 
             duration = time.time() - start_time
 
@@ -358,12 +369,16 @@ class QualityService:
         self,
         metrics: TechnicalQualityMetrics,
         perceptual_metrics: PerceptualQualityMetrics | None = None,
+        face_detections: list[Any] | None = None,
+        reference_matches: list[Any] | None = None,
     ) -> QualityScore:
         """Calculate composite quality score from technical and perceptual metrics.
 
         Args:
             metrics: Technical quality metrics
             perceptual_metrics: Optional perceptual quality metrics (BRISQUE)
+            face_detections: Optional face detection results for quality bonuses
+            reference_matches: Optional reference similarity matches for bonuses
 
         Returns:
             Composite quality score
@@ -394,16 +409,30 @@ class QualityService:
             perceptual_score = perceptual_metrics.brisque_normalized
             brisque_contrib = perceptual_score * self.quality_config.brisque_weight
 
+        # Calculate face quality bonus
+        face_quality_bonus = self._calculate_face_quality_bonus(face_detections)
+
+        # Calculate reference matching bonus
+        reference_match_bonus = self._calculate_reference_match_bonus(reference_matches)
+
         # Calculate overall score
+        base_score = technical_score
         if perceptual_score is not None and self.quality_config.enable_brisque:
             # Combine technical and perceptual scores using weights
             technical_weight = 1.0 - self.quality_config.brisque_weight
-            overall_score = (technical_score * technical_weight) + (
+            base_score = (technical_score * technical_weight) + (
                 perceptual_score * self.quality_config.brisque_weight
             )
-        else:
-            # Use only technical score
-            overall_score = technical_score
+
+        # Add bonuses to create final overall score
+        overall_score = base_score
+        if face_quality_bonus:
+            overall_score += face_quality_bonus
+        if reference_match_bonus:
+            overall_score += reference_match_bonus
+
+        # Clamp overall score to [0.0, 1.0]
+        overall_score = max(0.0, min(1.0, overall_score))
 
         # Check if passes minimum threshold
         passes_threshold = overall_score >= self.quality_config.min_quality_score
@@ -419,7 +448,86 @@ class QualityService:
             noise_contribution=noise_contrib,
             perceptual_score=perceptual_score,
             brisque_contribution=brisque_contrib,
+            face_quality_bonus=face_quality_bonus,
+            reference_match_bonus=reference_match_bonus,
         )
+
+    def _calculate_face_quality_bonus(
+        self, face_detections: list[Any] | None
+    ) -> float | None:
+        """Calculate face quality bonus based on detection confidence and size.
+
+        Args:
+            face_detections: List of face detection results
+
+        Returns:
+            Face quality bonus (0.0 to face_quality_bonus_weight) or None if disabled
+        """
+        if (
+            not self.quality_config.enable_face_quality_bonus
+            or not face_detections
+            or len(face_detections) == 0
+        ):
+            return None
+
+        # Calculate bonus based on best face detection
+        best_face_score = 0.0
+        for face in face_detections:
+            # Face quality is based on confidence and relative size
+            confidence = getattr(face, "confidence", 0.0)
+            bbox = getattr(face, "bbox", None)
+
+            if bbox is not None and len(bbox) >= 4:
+                # Calculate face area relative to image size
+                face_width = bbox[2] - bbox[0]
+                face_height = bbox[3] - bbox[1]
+                face_area = face_width * face_height
+
+                # Normalize face area (assuming reasonable face size range)
+                # This is a heuristic - faces should be at least 64x64 pixels for good quality
+                min_face_area = 64 * 64
+                max_face_area = 512 * 512
+                area_score = min(
+                    1.0,
+                    max(
+                        0.0,
+                        (face_area - min_face_area) / (max_face_area - min_face_area),
+                    ),
+                )
+
+                # Combine confidence and area scores
+                face_score = (confidence * 0.7) + (area_score * 0.3)
+                best_face_score = max(best_face_score, face_score)
+
+        # Scale to bonus weight
+        return best_face_score * self.quality_config.face_quality_bonus_weight
+
+    def _calculate_reference_match_bonus(
+        self, reference_matches: list[Any] | None
+    ) -> float | None:
+        """Calculate reference matching bonus based on similarity scores.
+
+        Args:
+            reference_matches: List of reference similarity matches
+
+        Returns:
+            Reference matching bonus (0.0 to reference_match_bonus_weight) or None if disabled
+        """
+        if (
+            not self.quality_config.enable_reference_match_bonus
+            or not reference_matches
+            or len(reference_matches) == 0
+        ):
+            return None
+
+        # Calculate bonus based on best reference match
+        best_similarity = 0.0
+        for match in reference_matches:
+            similarity = getattr(match, "similarity", 0.0)
+            best_similarity = max(best_similarity, similarity)
+
+        # Scale to bonus weight
+        return best_similarity * self.quality_config.reference_match_bonus_weight
 
     def _calculate_batch_statistics(
         self,

@@ -663,6 +663,212 @@ class TestQualityService:
         # PIQ should not be called
         mock_piq.brisque.assert_not_called()
 
+    def test_calculate_face_quality_bonus_enabled(self) -> None:
+        """Test face quality bonus calculation when enabled."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Mock face detection with confidence and bbox
+        mock_face = type(
+            "MockFace",
+            (),
+            {"confidence": 0.95, "bbox": [100, 100, 200, 200]},  # 100x100 face
+        )()
+        face_detections = [mock_face]
+
+        bonus = service._calculate_face_quality_bonus(face_detections)
+
+        assert bonus is not None
+        assert 0.0 <= bonus <= config.quality.face_quality_bonus_weight
+        # Should get a good bonus for high confidence and reasonable size
+        assert bonus > 0.05
+
+    def test_calculate_face_quality_bonus_disabled(self) -> None:
+        """Test face quality bonus when disabled."""
+        config = (
+            ConfigBuilder()
+            .with_quality_config(QualityConfig(enable_face_quality_bonus=False))
+            .build()
+        )
+        service = QualityService(config)
+
+        mock_face = type(
+            "MockFace", (), {"confidence": 0.95, "bbox": [100, 100, 200, 200]}
+        )()
+        face_detections = [mock_face]
+
+        bonus = service._calculate_face_quality_bonus(face_detections)
+        assert bonus is None
+
+    def test_calculate_face_quality_bonus_no_faces(self) -> None:
+        """Test face quality bonus with no face detections."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        bonus = service._calculate_face_quality_bonus([])
+        assert bonus is None
+
+        bonus = service._calculate_face_quality_bonus(None)
+        assert bonus is None
+
+    def test_calculate_reference_match_bonus_enabled(self) -> None:
+        """Test reference matching bonus calculation when enabled."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Mock reference match with similarity score
+        mock_match = type("MockMatch", (), {"similarity": 0.85})()
+        reference_matches = [mock_match]
+
+        bonus = service._calculate_reference_match_bonus(reference_matches)
+
+        assert bonus is not None
+        assert 0.0 <= bonus <= config.quality.reference_match_bonus_weight
+        # Should get a good bonus for high similarity
+        expected_bonus = 0.85 * config.quality.reference_match_bonus_weight
+        assert abs(bonus - expected_bonus) < 0.001
+
+    def test_calculate_reference_match_bonus_disabled(self) -> None:
+        """Test reference matching bonus when disabled."""
+        config = (
+            ConfigBuilder()
+            .with_quality_config(QualityConfig(enable_reference_match_bonus=False))
+            .build()
+        )
+        service = QualityService(config)
+
+        mock_match = type("MockMatch", (), {"similarity": 0.85})()
+        reference_matches = [mock_match]
+
+        bonus = service._calculate_reference_match_bonus(reference_matches)
+        assert bonus is None
+
+    def test_calculate_reference_match_bonus_no_matches(self) -> None:
+        """Test reference matching bonus with no matches."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        bonus = service._calculate_reference_match_bonus([])
+        assert bonus is None
+
+        bonus = service._calculate_reference_match_bonus(None)
+        assert bonus is None
+
+    @patch("culora.services.quality_service.piq")
+    @patch("cv2.Laplacian")
+    @patch("cv2.cvtColor")
+    def test_analyze_image_with_composite_scoring(
+        self, mock_cvtcolor: MagicMock, mock_laplacian: MagicMock, mock_piq: MagicMock
+    ) -> None:
+        """Test full image analysis with composite scoring including bonuses."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Mock CV2 operations
+        mock_laplacian.side_effect = [
+            np.array([[100, 200]], dtype=np.float64),
+            np.array([[10, 20]], dtype=np.float64),
+        ]
+        mock_cvtcolor.return_value = np.array([[[0, 128, 255]]])
+
+        # Mock PIQ BRISQUE
+        mock_piq.brisque = PIQMocks.create_brisque_mock(25.0)
+
+        # Mock face detection and reference matches
+        mock_face = type(
+            "MockFace",
+            (),
+            {"confidence": 0.9, "bbox": [50, 50, 150, 150]},  # 100x100 face
+        )()
+
+        mock_match = type("MockMatch", (), {"similarity": 0.8})()
+
+        with TempFileHelper.create_temp_dir() as temp_dir:
+            image = ImageFixtures.create_test_image(256, 256)
+            image_path = temp_dir / "test.jpg"
+
+            result = service.analyze_image(
+                image,
+                image_path,
+                face_detections=[mock_face],
+                reference_matches=[mock_match],
+            )
+
+            assert result.success is True
+            assert result.score is not None
+
+            # Check bonuses are calculated
+            assert result.score.face_quality_bonus is not None
+            assert result.score.face_quality_bonus > 0.0
+            assert result.score.reference_match_bonus is not None
+            assert result.score.reference_match_bonus > 0.0
+
+            # Overall score should be higher than base score due to bonuses
+            base_score = result.score.technical_score
+            if result.score.perceptual_score:
+                technical_weight = 1.0 - config.quality.brisque_weight
+                base_score = (result.score.technical_score * technical_weight) + (
+                    result.score.perceptual_score * config.quality.brisque_weight
+                )
+
+            assert result.score.overall_score > base_score
+
+    def test_calculate_quality_score_with_bonuses(self) -> None:
+        """Test quality score calculation with face and reference bonuses."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Create mock metrics
+        from culora.domain.models.quality import TechnicalQualityMetrics
+
+        metrics = TechnicalQualityMetrics(
+            sharpness=0.8,
+            brightness_score=0.7,
+            contrast_score=0.9,
+            color_quality=0.6,
+            noise_score=0.5,
+            laplacian_variance=1000.0,
+            mean_brightness=0.5,
+            contrast_value=0.4,
+            mean_saturation=0.3,
+            noise_level=25.0,
+            analysis_width=256,
+            analysis_height=256,
+            was_resized=False,
+        )
+
+        # Mock face and reference data
+        mock_face = type(
+            "MockFace",
+            (),
+            {"confidence": 0.95, "bbox": [100, 100, 300, 300]},  # Large face
+        )()
+
+        mock_match = type("MockMatch", (), {"similarity": 0.9})()
+
+        score = service._calculate_quality_score(
+            metrics, face_detections=[mock_face], reference_matches=[mock_match]
+        )
+
+        # Calculate expected scores
+        expected_technical = (
+            0.8 * 0.35 + 0.7 * 0.2 + 0.9 * 0.25 + 0.6 * 0.15 + 0.5 * 0.05
+        )
+        expected_ref_bonus = 0.9 * 0.15  # similarity * reference_match_bonus_weight
+
+        assert abs(score.technical_score - expected_technical) < 0.001
+        assert score.face_quality_bonus is not None
+        assert score.face_quality_bonus > 0.06  # Should be close to expected
+        assert score.reference_match_bonus is not None
+        assert abs(score.reference_match_bonus - expected_ref_bonus) < 0.001
+
+        # Overall score should include bonuses
+        expected_overall = (
+            expected_technical + score.face_quality_bonus + score.reference_match_bonus
+        )
+        expected_overall = min(1.0, expected_overall)  # Clamped to 1.0
+        assert abs(score.overall_score - expected_overall) < 0.001
+
 
 class TestQualityConfig:
     """Test QualityConfig validation and functionality."""
@@ -685,6 +891,11 @@ class TestQualityConfig:
         assert config.brisque_weight == 0.3
         assert config.brisque_lower_better is True
         assert config.brisque_score_range == (0.0, 100.0)
+        # Composite scoring defaults
+        assert config.enable_face_quality_bonus is True
+        assert config.face_quality_bonus_weight == 0.1
+        assert config.enable_reference_match_bonus is True
+        assert config.reference_match_bonus_weight == 0.15
 
     def test_quality_config_weights_validation_valid(self) -> None:
         """Test valid weight configuration."""
@@ -789,3 +1000,26 @@ class TestQualityConfig:
 
         with pytest.raises(ValueError):
             QualityConfig(brisque_weight=1.1)
+
+    def test_quality_config_composite_bonus_weight_validation(self) -> None:
+        """Test composite bonus weight validation."""
+        # Valid weights
+        config = QualityConfig(
+            face_quality_bonus_weight=0.2, reference_match_bonus_weight=0.25
+        )
+        assert config.face_quality_bonus_weight == 0.2
+        assert config.reference_match_bonus_weight == 0.25
+
+        # Invalid face bonus weight - out of range
+        with pytest.raises(ValueError):
+            QualityConfig(face_quality_bonus_weight=-0.1)
+
+        with pytest.raises(ValueError):
+            QualityConfig(face_quality_bonus_weight=0.6)  # Above 0.5 limit
+
+        # Invalid reference bonus weight - out of range
+        with pytest.raises(ValueError):
+            QualityConfig(reference_match_bonus_weight=-0.1)
+
+        with pytest.raises(ValueError):
+            QualityConfig(reference_match_bonus_weight=0.6)  # Above 0.5 limit

@@ -133,6 +133,31 @@ class QualityConfig(BaseModel):
         description="Maximum image size for quality analysis when resizing enabled",
     )
 
+    # Composite scoring bonuses
+    enable_face_quality_bonus: bool = Field(
+        default=True,
+        description="Whether to apply face quality bonuses based on detection confidence and size",
+    )
+
+    face_quality_bonus_weight: float = Field(
+        default=0.1,
+        ge=0.0,
+        le=0.5,
+        description="Maximum bonus weight for high-quality face detections",
+    )
+
+    enable_reference_match_bonus: bool = Field(
+        default=True,
+        description="Whether to apply reference matching bonuses for identity consistency",
+    )
+
+    reference_match_bonus_weight: float = Field(
+        default=0.15,
+        ge=0.0,
+        le=0.5,
+        description="Maximum bonus weight for high reference similarity matches",
+    )
+
     @field_validator("optimal_brightness_range")
     @classmethod
     def validate_brightness_range(cls, v: tuple[float, float]) -> tuple[float, float]:

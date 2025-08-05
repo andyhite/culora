@@ -135,6 +135,10 @@ class TestCuLoRAConfig:
                 "brisque_score_range": [0.0, 100.0],
                 "resize_for_analysis": True,
                 "max_analysis_size": [1024, 1024],
+                "enable_face_quality_bonus": True,
+                "face_quality_bonus_weight": 0.1,
+                "enable_reference_match_bonus": True,
+                "reference_match_bonus_weight": 0.15,
             },
         }
         assert dumped == expected

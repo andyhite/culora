@@ -60,7 +60,7 @@ class QualityScore:
 
     # Composite scores
     technical_score: float  # Weighted combination of technical metrics
-    overall_score: float  # Combined technical + perceptual (if enabled)
+    overall_score: float  # Combined technical + perceptual + bonuses
     passes_threshold: bool
 
     # Individual metric contributions
@@ -73,6 +73,8 @@ class QualityScore:
     # Optional fields (with defaults)
     perceptual_score: float | None = None  # BRISQUE-based perceptual score
     brisque_contribution: float | None = None
+    face_quality_bonus: float | None = None  # Bonus based on face detection quality
+    reference_match_bonus: float | None = None  # Bonus for reference similarity
     quality_percentile: float | None = None  # Set during batch analysis
 
 
