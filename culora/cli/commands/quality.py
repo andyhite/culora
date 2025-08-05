@@ -181,6 +181,7 @@ def _display_single_result(
 
     score = quality_result.score
     metrics = quality_result.metrics
+    perceptual_metrics = quality_result.perceptual_metrics
 
     # Create summary table
     table = Table(title="Quality Analysis Results")
@@ -193,6 +194,20 @@ def _display_single_result(
         f"{score.overall_score:.3f}",
         "✓ Passes" if score.passes_threshold else "✗ Below threshold",
     )
+
+    # Show technical and perceptual breakdown if available
+    if score.technical_score != score.overall_score:
+        table.add_row(
+            "Technical Score",
+            f"{score.technical_score:.3f}",
+            "Sharpness, brightness, contrast, color, noise",
+        )
+        if score.perceptual_score is not None:
+            table.add_row(
+                "Perceptual Score",
+                f"{score.perceptual_score:.3f}",
+                "BRISQUE no-reference quality assessment",
+            )
 
     if show_details and metrics:
         table.add_row(
@@ -221,6 +236,14 @@ def _display_single_result(
             f"Level: {metrics.noise_level:.1f}",
         )
 
+        # Add BRISQUE details if available
+        if perceptual_metrics and perceptual_metrics.brisque_success:
+            table.add_row(
+                "BRISQUE Score",
+                f"{perceptual_metrics.brisque_normalized:.3f}",
+                f"Raw: {perceptual_metrics.brisque_score:.1f}",
+            )
+
     console.console.print(table)
 
     if show_details:
@@ -231,6 +254,17 @@ def _display_single_result(
             )
             if metrics.was_resized:
                 console.info("Image was resized for analysis")
+
+        # Show BRISQUE timing if available
+        if perceptual_metrics:
+            if perceptual_metrics.brisque_success:
+                console.info(
+                    f"BRISQUE calculation time: {perceptual_metrics.brisque_calculation_time:.3f}s"
+                )
+            else:
+                console.warning(
+                    f"BRISQUE calculation failed: {perceptual_metrics.brisque_error}"
+                )
 
 
 def _display_batch_results(
@@ -405,6 +439,25 @@ def show_quality_config() -> None:
             f"{quality_config.max_saturation:.2f}",
             "Maximum saturation before penalty",
         )
+
+        # BRISQUE perceptual quality settings
+        table.add_row(
+            "BRISQUE Enabled",
+            str(quality_config.enable_brisque),
+            "Enable perceptual quality assessment",
+        )
+        if quality_config.enable_brisque:
+            table.add_row(
+                "BRISQUE Weight",
+                f"{quality_config.brisque_weight:.2f}",
+                "Weight for BRISQUE in overall score",
+            )
+            brisque_min, brisque_max = quality_config.brisque_score_range
+            table.add_row(
+                "BRISQUE Score Range",
+                f"{brisque_min:.1f} - {brisque_max:.1f}",
+                "Expected BRISQUE score range",
+            )
 
         # Performance settings
         table.add_row(

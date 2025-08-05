@@ -99,6 +99,29 @@ class QualityConfig(BaseModel):
         description="Minimum quality score for image selection",
     )
 
+    # BRISQUE perceptual quality settings
+    enable_brisque: bool = Field(
+        default=True,
+        description="Whether to calculate BRISQUE perceptual quality scores",
+    )
+
+    brisque_weight: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=1.0,
+        description="Weight for BRISQUE score in composite quality assessment",
+    )
+
+    brisque_lower_better: bool = Field(
+        default=True,
+        description="Whether lower BRISQUE scores indicate better quality (default: True)",
+    )
+
+    brisque_score_range: tuple[float, float] = Field(
+        default=(0.0, 100.0),
+        description="Expected BRISQUE score range for normalization",
+    )
+
     # Performance optimization
     resize_for_analysis: bool = Field(
         default=True,
@@ -131,6 +154,17 @@ class QualityConfig(BaseModel):
             )
         return v
 
+    @field_validator("brisque_score_range")
+    @classmethod
+    def validate_brisque_range(cls, v: tuple[float, float]) -> tuple[float, float]:
+        """Validate BRISQUE score range."""
+        min_score, max_score = v
+        if min_score >= max_score:
+            raise ValueError("BRISQUE minimum score must be less than maximum score")
+        if min_score < 0.0:
+            raise ValueError("BRISQUE minimum score must be non-negative")
+        return v
+
     @field_validator("max_analysis_size")
     @classmethod
     def validate_analysis_size(cls, v: tuple[int, int]) -> tuple[int, int]:
@@ -142,21 +176,23 @@ class QualityConfig(BaseModel):
             raise ValueError("Analysis dimensions too small (minimum 64x64)")
         return v
 
-    def validate_weights_sum(self) -> None:
-        """Validate that all weights sum to approximately 1.0."""
-        total_weight = (
+    def validate_technical_weights_sum(self) -> None:
+        """Validate that technical quality weights sum to approximately 1.0."""
+        technical_weight = (
             self.sharpness_weight
             + self.brightness_weight
             + self.contrast_weight
             + self.color_weight
             + self.noise_weight
         )
-        if abs(total_weight - 1.0) > 0.001:
-            raise ValueError(f"Quality weights must sum to 1.0, got {total_weight}")
+        if abs(technical_weight - 1.0) > 0.001:
+            raise ValueError(
+                f"Technical quality weights must sum to 1.0, got {technical_weight}"
+            )
 
     def model_post_init(self, _context: Any) -> None:
         """Post-initialization validation."""
-        self.validate_weights_sum()
+        self.validate_technical_weights_sum()
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "QualityConfig":

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+import torch
 from PIL import Image
 
 from culora.domain.models.config.quality import QualityConfig
@@ -13,6 +14,7 @@ from culora.services.quality_service import (
     get_quality_service,
 )
 from tests.helpers import ConfigBuilder, ImageFixtures, TempFileHelper
+from tests.mocks.piq_mocks import PIQMocks
 
 
 class TestQualityService:
@@ -484,6 +486,183 @@ class TestQualityService:
         assert batch_result.passing_threshold_count == 4  # 0.8, 0.6, 0.9, 0.7 >= 0.6
         assert batch_result.images_per_second == 2.5  # 5 images / 2.0 seconds
 
+    @patch("culora.services.quality_service.piq")
+    def test_calculate_perceptual_metrics_success(self, mock_piq: MagicMock) -> None:
+        """Test successful BRISQUE perceptual metrics calculation."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Mock PIQ BRISQUE
+        mock_piq.brisque = PIQMocks.create_brisque_mock(30.5)
+
+        image = ImageFixtures.create_test_image(256, 256)
+        result = service._calculate_perceptual_metrics(image)
+
+        assert result is not None
+        assert result.brisque_success is True
+        assert result.brisque_score == 30.5
+        assert 0.0 <= result.brisque_normalized <= 1.0
+        assert result.brisque_calculation_time > 0
+        assert result.brisque_error is None
+
+        # Should call BRISQUE once
+        mock_piq.brisque.assert_called_once()
+
+    @patch("culora.services.quality_service.piq")
+    def test_calculate_perceptual_metrics_failure(self, mock_piq: MagicMock) -> None:
+        """Test BRISQUE calculation failure handling."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Mock PIQ BRISQUE to fail
+        mock_piq.brisque = PIQMocks.create_failing_brisque_mock("Mock BRISQUE error")
+
+        image = ImageFixtures.create_test_image(256, 256)
+        result = service._calculate_perceptual_metrics(image)
+
+        assert result is not None
+        assert result.brisque_success is False
+        assert result.brisque_score == float("inf")
+        assert result.brisque_normalized == 0.0
+        assert result.brisque_calculation_time > 0
+        assert (
+            result.brisque_error is not None
+            and "Mock BRISQUE error" in result.brisque_error
+        )
+
+    def test_calculate_perceptual_metrics_disabled(self) -> None:
+        """Test perceptual metrics when BRISQUE is disabled."""
+        config = (
+            ConfigBuilder()
+            .with_quality_config(QualityConfig(enable_brisque=False))
+            .build()
+        )
+        service = QualityService(config)
+
+        image = ImageFixtures.create_test_image(256, 256)
+        result = service._calculate_perceptual_metrics(image)
+
+        assert result is None
+
+    def test_pil_to_tensor(self) -> None:
+        """Test PIL image to tensor conversion."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Test RGB image
+        image = ImageFixtures.create_test_image(64, 64)
+        tensor = service._pil_to_tensor(image)
+
+        assert isinstance(tensor, torch.Tensor)
+        assert tensor.shape == (1, 3, 64, 64)  # (batch, channels, height, width)
+        assert 0.0 <= tensor.min() <= tensor.max() <= 1.0
+
+        # Test grayscale image (should be converted to RGB)
+        gray_image = image.convert("L")
+        gray_tensor = service._pil_to_tensor(gray_image)
+
+        assert gray_tensor.shape == (1, 3, 64, 64)
+
+    def test_normalize_brisque_score(self) -> None:
+        """Test BRISQUE score normalization."""
+        config = (
+            ConfigBuilder()
+            .with_quality_config(QualityConfig(brisque_score_range=(0.0, 100.0)))
+            .build()
+        )
+        service = QualityService(config)
+
+        # Test various BRISQUE scores
+        assert service._normalize_brisque_score(0.0) == 1.0  # Best quality
+        assert service._normalize_brisque_score(50.0) == 0.5  # Middle quality
+        assert service._normalize_brisque_score(100.0) == 0.0  # Worst quality
+
+        # Test clamping
+        assert service._normalize_brisque_score(-10.0) == 1.0  # Below range
+        assert service._normalize_brisque_score(150.0) == 0.0  # Above range
+
+    @patch("culora.services.quality_service.piq")
+    @patch("cv2.Laplacian")
+    @patch("cv2.cvtColor")
+    def test_analyze_image_with_brisque(
+        self, mock_cvtcolor: MagicMock, mock_laplacian: MagicMock, mock_piq: MagicMock
+    ) -> None:
+        """Test full image analysis with BRISQUE enabled."""
+        config = ConfigBuilder().build()
+        service = QualityService(config)
+
+        # Mock CV2 operations
+        mock_laplacian.side_effect = [
+            np.array([[100, 200]], dtype=np.float64),  # For sharpness
+            np.array([[10, 20]], dtype=np.float64),  # For noise
+        ]
+        mock_cvtcolor.return_value = np.array([[[0, 128, 255]]])
+
+        # Mock PIQ BRISQUE
+        mock_piq.brisque = PIQMocks.create_brisque_mock(25.0)
+
+        with TempFileHelper.create_temp_dir() as temp_dir:
+            image = ImageFixtures.create_test_image(256, 256)
+            image_path = temp_dir / "test.jpg"
+
+            result = service.analyze_image(image, image_path)
+
+            assert result.success is True
+            assert result.metrics is not None
+            assert result.perceptual_metrics is not None
+            assert result.score is not None
+
+            # Check perceptual metrics
+            assert result.perceptual_metrics.brisque_success is True
+            assert result.perceptual_metrics.brisque_score == 25.0
+            assert result.perceptual_metrics.brisque_normalized > 0.0
+
+            # Check composite score includes BRISQUE
+            assert result.score.perceptual_score is not None
+            assert result.score.brisque_contribution is not None
+            assert (
+                result.score.overall_score != result.score.technical_score
+            )  # Should be different when BRISQUE enabled
+
+    @patch("culora.services.quality_service.piq")
+    @patch("cv2.Laplacian")
+    @patch("cv2.cvtColor")
+    def test_analyze_image_brisque_disabled(
+        self, mock_cvtcolor: MagicMock, mock_laplacian: MagicMock, mock_piq: MagicMock
+    ) -> None:
+        """Test image analysis with BRISQUE disabled."""
+        config = (
+            ConfigBuilder()
+            .with_quality_config(QualityConfig(enable_brisque=False))
+            .build()
+        )
+        service = QualityService(config)
+
+        # Mock CV2 operations
+        mock_laplacian.side_effect = [
+            np.array([[100, 200]], dtype=np.float64),
+            np.array([[10, 20]], dtype=np.float64),
+        ]
+        mock_cvtcolor.return_value = np.array([[[0, 128, 255]]])
+
+        with TempFileHelper.create_temp_dir() as temp_dir:
+            image = ImageFixtures.create_test_image(256, 256)
+            image_path = temp_dir / "test.jpg"
+
+            result = service.analyze_image(image, image_path)
+
+            assert result.success is True
+            assert result.perceptual_metrics is None
+            assert result.score is not None
+            assert result.score.perceptual_score is None
+            assert result.score.brisque_contribution is None
+            assert (
+                result.score.overall_score == result.score.technical_score
+            )  # Should be same as technical
+
+        # PIQ should not be called
+        mock_piq.brisque.assert_not_called()
+
 
 class TestQualityConfig:
     """Test QualityConfig validation and functionality."""
@@ -501,6 +680,11 @@ class TestQualityConfig:
         assert config.min_quality_score == 0.3
         assert config.resize_for_analysis is True
         assert config.max_analysis_size == (1024, 1024)
+        # BRISQUE defaults
+        assert config.enable_brisque is True
+        assert config.brisque_weight == 0.3
+        assert config.brisque_lower_better is True
+        assert config.brisque_score_range == (0.0, 100.0)
 
     def test_quality_config_weights_validation_valid(self) -> None:
         """Test valid weight configuration."""
@@ -516,7 +700,9 @@ class TestQualityConfig:
 
     def test_quality_config_weights_validation_invalid(self) -> None:
         """Test invalid weight configuration."""
-        with pytest.raises(ValueError, match="Quality weights must sum to 1.0"):
+        with pytest.raises(
+            ValueError, match="Technical quality weights must sum to 1.0"
+        ):
             QualityConfig(
                 sharpness_weight=0.5,
                 brightness_weight=0.2,
@@ -567,3 +753,39 @@ class TestQualityConfig:
         config = QualityConfig.from_dict(data)
         assert config.sharpness_weight == 0.4
         assert config.min_quality_score == 0.5
+
+    def test_quality_config_brisque_range_validation(self) -> None:
+        """Test BRISQUE score range validation."""
+        # Valid range
+        config = QualityConfig(brisque_score_range=(0.0, 100.0))
+        assert config.brisque_score_range == (0.0, 100.0)
+
+        # Invalid range - min >= max
+        with pytest.raises(
+            ValueError, match="BRISQUE minimum score must be less than maximum score"
+        ):
+            QualityConfig(brisque_score_range=(50.0, 50.0))
+
+        with pytest.raises(
+            ValueError, match="BRISQUE minimum score must be less than maximum score"
+        ):
+            QualityConfig(brisque_score_range=(100.0, 50.0))
+
+        # Invalid range - negative minimum
+        with pytest.raises(
+            ValueError, match="BRISQUE minimum score must be non-negative"
+        ):
+            QualityConfig(brisque_score_range=(-10.0, 100.0))
+
+    def test_quality_config_brisque_weight_validation(self) -> None:
+        """Test BRISQUE weight validation."""
+        # Valid weights
+        config = QualityConfig(brisque_weight=0.3)
+        assert config.brisque_weight == 0.3
+
+        # Invalid weights - out of range
+        with pytest.raises(ValueError):
+            QualityConfig(brisque_weight=-0.1)
+
+        with pytest.raises(ValueError):
+            QualityConfig(brisque_weight=1.1)

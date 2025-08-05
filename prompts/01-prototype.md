@@ -95,26 +95,26 @@ This plan delivers a sophisticated, production-ready LoRA dataset curation utili
 
 **Completion Summary**: Implemented comprehensive technical quality assessment system with CV2-based metrics (sharpness, brightness, contrast, color, noise). Added QualityService, domain models, CLI commands, and full test coverage. All 490 tests passing.
 
-### **Task 4.2: BRISQUE Perceptual Quality Assessment**
+### **Task 4.2: BRISQUE Perceptual Quality Assessment** ✅ **COMPLETED**
 
 **Goal**: No-reference perceptual quality scoring
 
 **Requirements**:
 
-- Integrate BRISQUE algorithm through PIQ (PyTorch Image Quality) library
-- Handle BRISQUE calculation errors gracefully
-- Provide configurable quality thresholds for filtering
-- Optimize BRISQUE processing for batch operations
-- Combine BRISQUE scores with technical metrics
+- ✅ Integrate BRISQUE algorithm through PIQ (PyTorch Image Quality) library
+- ✅ Handle BRISQUE calculation errors gracefully
+- ✅ Provide configurable quality thresholds for filtering
+- ✅ Optimize BRISQUE processing for batch operations
+- ✅ Combine BRISQUE scores with technical metrics
 
 **BRISQUE Integration Features**:
 
-- Efficient BRISQUE calculation with error handling
-- Quality threshold validation and filtering
-- Performance optimization for large image sets
-- Clear reporting of quality assessment results
+- ✅ Efficient BRISQUE calculation with error handling
+- ✅ Quality threshold validation and filtering
+- ✅ Performance optimization for large image sets
+- ✅ Clear reporting of quality assessment results
 
-**Notes**: PIQ library already integrated in foundation for BRISQUE support.
+**Completion Summary**: Implemented BRISQUE perceptual quality assessment using PIQ library with tensor conversion, score normalization, enhanced CLI display, and full test coverage. 499/499 tests passing.
 
 ### **Task 4.3: Composite Quality Scoring System**
 

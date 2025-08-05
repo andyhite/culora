@@ -33,18 +33,35 @@ class TechnicalQualityMetrics:
 
 
 @dataclass(frozen=True)
+class PerceptualQualityMetrics:
+    """Perceptual quality metrics for an image.
+
+    Contains perceptual quality assessments using BRISQUE and other
+    no-reference quality measures.
+    """
+
+    # BRISQUE score (lower is better, typically 0-100)
+    brisque_score: float
+    brisque_normalized: float  # Normalized to 0.0-1.0 (higher is better)
+
+    # Processing metadata
+    brisque_calculation_time: float
+    brisque_success: bool
+    brisque_error: str | None = None
+
+
+@dataclass(frozen=True)
 class QualityScore:
     """Composite quality score for an image.
 
-    Combines technical metrics with configurable weights
+    Combines technical and perceptual metrics with configurable weights
     to produce overall quality assessment.
     """
 
     # Composite scores
     technical_score: float  # Weighted combination of technical metrics
-    overall_score: (
-        float  # Currently same as technical_score, future: includes perceptual
-    )
+    overall_score: float  # Combined technical + perceptual (if enabled)
+    passes_threshold: bool
 
     # Individual metric contributions
     sharpness_contribution: float
@@ -53,8 +70,9 @@ class QualityScore:
     color_contribution: float
     noise_contribution: float
 
-    # Quality assessment
-    passes_threshold: bool
+    # Optional fields (with defaults)
+    perceptual_score: float | None = None  # BRISQUE-based perceptual score
+    brisque_contribution: float | None = None
     quality_percentile: float | None = None  # Set during batch analysis
 
 
@@ -70,6 +88,7 @@ class ImageQualityResult:
 
     # Quality data (None if analysis failed)
     metrics: TechnicalQualityMetrics | None = None
+    perceptual_metrics: PerceptualQualityMetrics | None = None
     score: QualityScore | None = None
 
     # Error information

@@ -73,7 +73,9 @@ class TestQualityConfig:
 
     def test_quality_config_weights_validation_invalid_sum(self) -> None:
         """Test invalid weight configuration - doesn't sum to 1.0."""
-        with pytest.raises(ValueError, match="Quality weights must sum to 1.0"):
+        with pytest.raises(
+            ValueError, match="Technical quality weights must sum to 1.0"
+        ):
             QualityConfig(
                 sharpness_weight=0.5,
                 brightness_weight=0.2,
@@ -223,13 +225,15 @@ class TestQualityConfig:
         )
 
         # Should not raise exception
-        config.validate_weights_sum()
+        config.validate_technical_weights_sum()
 
         # Manually change a weight to make sum invalid
         config.__dict__["sharpness_weight"] = 0.5  # Now sum = 1.2
 
-        with pytest.raises(ValueError, match="Quality weights must sum to 1.0"):
-            config.validate_weights_sum()
+        with pytest.raises(
+            ValueError, match="Technical quality weights must sum to 1.0"
+        ):
+            config.validate_technical_weights_sum()
 
     def test_quality_config_serialization(self) -> None:
         """Test that QualityConfig can be serialized and deserialized."""

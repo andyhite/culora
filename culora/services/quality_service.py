@@ -6,6 +6,8 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import piq
+import torch
 from PIL import Image
 
 from culora.core import CuLoRAError
@@ -13,6 +15,7 @@ from culora.domain import CuLoRAConfig
 from culora.domain.models.quality import (
     BatchQualityResult,
     ImageQualityResult,
+    PerceptualQualityMetrics,
     QualityScore,
     TechnicalQualityMetrics,
 )
@@ -39,12 +42,10 @@ class QualityAnalysisError(QualityServiceError):
 class QualityService:
     """Service for image quality assessment and scoring.
 
-    Provides comprehensive technical quality analysis including:
-    - Sharpness assessment using Laplacian variance
-    - Brightness and contrast evaluation
-    - Color quality and saturation analysis
-    - Noise detection and scoring
-    - Composite quality score calculation
+    Provides comprehensive quality analysis including:
+    - Technical metrics: sharpness, brightness, contrast, color, noise
+    - Perceptual quality assessment using BRISQUE (PIQ library)
+    - Composite quality scoring with configurable weights
     """
 
     def __init__(self, config: CuLoRAConfig) -> None:
@@ -76,8 +77,11 @@ class QualityService:
             # Calculate technical quality metrics
             metrics = self._calculate_technical_metrics(analysis_image, was_resized)
 
+            # Calculate perceptual quality metrics (BRISQUE)
+            perceptual_metrics = self._calculate_perceptual_metrics(analysis_image)
+
             # Calculate composite quality score
-            score = self._calculate_quality_score(metrics)
+            score = self._calculate_quality_score(metrics, perceptual_metrics)
 
             duration = time.time() - start_time
 
@@ -85,6 +89,7 @@ class QualityService:
                 path=path,
                 success=True,
                 metrics=metrics,
+                perceptual_metrics=perceptual_metrics,
                 score=score,
                 analysis_duration=duration,
             )
@@ -350,12 +355,15 @@ class QualityService:
         return max(0.0, 1.0 - (noise_level / threshold))
 
     def _calculate_quality_score(
-        self, metrics: TechnicalQualityMetrics
+        self,
+        metrics: TechnicalQualityMetrics,
+        perceptual_metrics: PerceptualQualityMetrics | None = None,
     ) -> QualityScore:
-        """Calculate composite quality score from technical metrics.
+        """Calculate composite quality score from technical and perceptual metrics.
 
         Args:
             metrics: Technical quality metrics
+            perceptual_metrics: Optional perceptual quality metrics (BRISQUE)
 
         Returns:
             Composite quality score
@@ -378,9 +386,24 @@ class QualityService:
             + noise_contrib
         )
 
-        # For now, overall score is same as technical score
-        # Future versions may include perceptual quality (BRISQUE)
-        overall_score = technical_score
+        # Calculate perceptual score and contribution
+        perceptual_score = None
+        brisque_contrib = None
+
+        if perceptual_metrics and perceptual_metrics.brisque_success:
+            perceptual_score = perceptual_metrics.brisque_normalized
+            brisque_contrib = perceptual_score * self.quality_config.brisque_weight
+
+        # Calculate overall score
+        if perceptual_score is not None and self.quality_config.enable_brisque:
+            # Combine technical and perceptual scores using weights
+            technical_weight = 1.0 - self.quality_config.brisque_weight
+            overall_score = (technical_score * technical_weight) + (
+                perceptual_score * self.quality_config.brisque_weight
+            )
+        else:
+            # Use only technical score
+            overall_score = technical_score
 
         # Check if passes minimum threshold
         passes_threshold = overall_score >= self.quality_config.min_quality_score
@@ -388,12 +411,14 @@ class QualityService:
         return QualityScore(
             technical_score=technical_score,
             overall_score=overall_score,
+            passes_threshold=passes_threshold,
             sharpness_contribution=sharpness_contrib,
             brightness_contribution=brightness_contrib,
             contrast_contribution=contrast_contrib,
             color_contribution=color_contrib,
             noise_contribution=noise_contrib,
-            passes_threshold=passes_threshold,
+            perceptual_score=perceptual_score,
+            brisque_contribution=brisque_contrib,
         )
 
     def _calculate_batch_statistics(
@@ -499,6 +524,101 @@ class QualityService:
                 percentile = (i / (total_count - 1)) * 100 if total_count > 1 else 100.0
                 # Update the score with percentile (requires creating new immutable object)
                 result.score.__dict__["quality_percentile"] = percentile
+
+    def _calculate_perceptual_metrics(
+        self, image: Image.Image
+    ) -> PerceptualQualityMetrics | None:
+        """Calculate perceptual quality metrics using BRISQUE.
+
+        Args:
+            image: PIL Image to analyze
+
+        Returns:
+            Perceptual quality metrics or None if BRISQUE is disabled/failed
+        """
+        if not self.quality_config.enable_brisque:
+            return None
+
+        start_time = time.time()
+
+        try:
+            # Convert PIL image to tensor
+            image_tensor = self._pil_to_tensor(image)
+
+            # Calculate BRISQUE score
+            brisque_score = piq.brisque(image_tensor, data_range=1.0, reduction="mean")
+            raw_score = float(brisque_score.item())
+
+            # Normalize BRISQUE score (lower is better, so invert)
+            normalized_score = self._normalize_brisque_score(raw_score)
+
+            calculation_time = time.time() - start_time
+
+            return PerceptualQualityMetrics(
+                brisque_score=raw_score,
+                brisque_normalized=normalized_score,
+                brisque_calculation_time=calculation_time,
+                brisque_success=True,
+            )
+
+        except Exception as e:
+            calculation_time = time.time() - start_time
+            error_msg = f"BRISQUE calculation failed: {e}"
+            logger.warning(error_msg)
+
+            return PerceptualQualityMetrics(
+                brisque_score=float("inf"),
+                brisque_normalized=0.0,
+                brisque_calculation_time=calculation_time,
+                brisque_success=False,
+                brisque_error=error_msg,
+            )
+
+    def _pil_to_tensor(self, image: Image.Image) -> torch.Tensor:
+        """Convert PIL Image to PyTorch tensor for PIQ processing.
+
+        Args:
+            image: PIL Image to convert
+
+        Returns:
+            PyTorch tensor in format (1, C, H, W) with values 0-1
+        """
+        # Convert to RGB if not already
+        if image.mode != "RGB":
+            image = image.convert("RGB")
+
+        # Convert to numpy array and normalize to 0-1
+        img_array = np.array(image).astype(np.float32) / 255.0
+
+        # Convert to tensor and rearrange dimensions (H, W, C) -> (C, H, W)
+        img_tensor = torch.from_numpy(img_array).permute(2, 0, 1)
+
+        # Add batch dimension: (C, H, W) -> (1, C, H, W)
+        img_tensor = img_tensor.unsqueeze(0)
+
+        return img_tensor
+
+    def _normalize_brisque_score(self, raw_score: float) -> float:
+        """Normalize BRISQUE score to 0-1 range (higher is better).
+
+        Args:
+            raw_score: Raw BRISQUE score (lower is better)
+
+        Returns:
+            Normalized score where 1.0 is best quality, 0.0 is worst
+        """
+        min_score, max_score = self.quality_config.brisque_score_range
+
+        # Clamp score to expected range
+        clamped_score = max(min_score, min(max_score, raw_score))
+
+        # Normalize to 0-1 range
+        if max_score > min_score:
+            normalized = (max_score - clamped_score) / (max_score - min_score)
+        else:
+            normalized = 1.0
+
+        return float(normalized)
 
 
 # Global service instance
