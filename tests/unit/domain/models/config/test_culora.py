@@ -140,6 +140,35 @@ class TestCuLoRAConfig:
                 "enable_reference_match_bonus": True,
                 "reference_match_bonus_weight": 0.15,
             },
+            "composition": {
+                "model_name": "vikhyatk/moondream2",
+                "model_cache_dir": str(
+                    Path.home()
+                    / "Library"
+                    / "Application Support"
+                    / "culora"
+                    / "composition_models"
+                ),
+                "device_preference": "auto",
+                "enable_shot_type_analysis": True,
+                "enable_scene_analysis": True,
+                "enable_lighting_analysis": True,
+                "enable_background_analysis": True,
+                "enable_expression_analysis": True,
+                "enable_angle_analysis": True,
+                "min_confidence_threshold": 0.7,
+                "enable_confidence_scoring": True,
+                "batch_size": 4,
+                "max_image_size": [1024, 1024],
+                "enable_model_caching": True,
+                "memory_optimization": True,
+                "max_retries": 3,
+                "response_timeout": 30.0,
+                "enable_fallback_parsing": True,
+                "use_structured_prompts": True,
+                "prompt_temperature": 0.1,
+                "enable_example_prompts": True,
+            },
         }
         assert dumped == expected
 

@@ -4,6 +4,7 @@ from typing import Annotated
 
 import typer
 
+from culora.cli.commands.composition import composition_app
 from culora.cli.commands.config import config_app
 from culora.cli.commands.device import device_app
 from culora.cli.commands.faces import faces_app
@@ -11,6 +12,7 @@ from culora.cli.commands.images import images_app
 from culora.cli.commands.quality import quality_app
 from culora.cli.display.console import console
 from culora.core import ConfigError, CuLoRAError
+from culora.services.composition_service import get_composition_service
 from culora.services.config_service import get_config_service
 from culora.services.device_service import get_device_service
 from culora.services.face_analysis_service import get_face_analysis_service
@@ -34,6 +36,7 @@ app.add_typer(device_app, name="device", help="Device information and management
 app.add_typer(images_app, name="images", help="Image loading and processing")
 app.add_typer(faces_app, name="faces", help="Face detection and analysis")
 app.add_typer(quality_app, name="quality", help="Image quality assessment")
+app.add_typer(composition_app, name="composition", help="Image composition analysis")
 
 
 @app.callback()
@@ -63,6 +66,7 @@ def main(
             get_face_analysis_service()
             get_face_reference_service()
             get_quality_service()
+            get_composition_service()
 
         except Exception as e:
             console.error(f"Failed to initialize services: {e}")

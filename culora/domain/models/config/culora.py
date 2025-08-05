@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from .composition import CompositionConfig
 from .device import DeviceConfig
 from .face import FaceAnalysisConfig
 from .image import ImageConfig
@@ -23,6 +24,7 @@ class CuLoRAConfig(BaseModel):
     images: ImageConfig = Field(default_factory=ImageConfig)
     faces: FaceAnalysisConfig = Field(default_factory=FaceAnalysisConfig)
     quality: QualityConfig = Field(default_factory=QualityConfig)
+    composition: CompositionConfig = Field(default_factory=CompositionConfig)
 
     model_config = ConfigDict(
         validate_assignment=True,

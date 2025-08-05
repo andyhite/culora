@@ -3,7 +3,13 @@
 Business entity models and data structures.
 """
 
+from .composition import (
+    BatchCompositionResult,
+    CompositionAnalysis,
+    CompositionResult,
+)
 from .config import (
+    CompositionConfig,
     CuLoRAConfig,
     DeviceConfig,
     FaceAnalysisConfig,
@@ -31,9 +37,13 @@ from .quality import (
 )
 
 __all__ = [
+    "BatchCompositionResult",
     "BatchFaceAnalysisResult",
     "BatchLoadResult",
     "BatchQualityResult",
+    "CompositionAnalysis",
+    "CompositionConfig",
+    "CompositionResult",
     "CuLoRAConfig",
     "Device",
     "DeviceConfig",
