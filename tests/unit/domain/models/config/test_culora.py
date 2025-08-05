@@ -169,6 +169,41 @@ class TestCuLoRAConfig:
                 "prompt_temperature": 0.1,
                 "enable_example_prompts": True,
             },
+            "clip": {
+                "model_name": "openai/clip-vit-base-patch32",
+                "model_cache_dir": str(
+                    Path.home()
+                    / "Library"
+                    / "Application Support"
+                    / "culora"
+                    / "clip_models"
+                ),
+                "device_preference": "auto",
+                "normalize_embeddings": True,
+                "embedding_precision": "float32",
+                "enable_embedding_cache": True,
+                "cache_compression": True,
+                "similarity_metric": "cosine",
+                "similarity_threshold": 0.8,
+                "clustering_method": "kmeans",
+                "max_clusters": 20,
+                "min_cluster_size": 2,
+                "enable_auto_clustering": True,
+                "batch_size": 8,
+                "max_image_size": [224, 224],
+                "num_workers": 2,
+                "memory_limit_mb": 2048,
+                "diversity_weight": 0.7,
+                "quality_weight": 0.3,
+                "min_diversity_score": 0.3,
+                "enable_similarity_analysis": True,
+                "enable_clustering_analysis": True,
+                "enable_diversity_analysis": True,
+                "max_similarity_pairs": 10,
+                "export_embeddings": False,
+                "export_similarity_matrix": False,
+                "export_clusters": True,
+            },
         }
         assert dumped == expected
 

@@ -3,12 +3,24 @@
 Business entity models and data structures.
 """
 
+from .clip import (
+    BatchSemanticResult,
+    ClusteringResult,
+    DiversityAnalysis,
+    EmbeddingSimilarity,
+    SemanticAnalysisResult,
+    SemanticCluster,
+    SemanticEmbedding,
+    SemanticSelectionCriteria,
+    SemanticSelectionResult,
+)
 from .composition import (
     BatchCompositionResult,
     CompositionAnalysis,
     CompositionResult,
 )
 from .config import (
+    CLIPConfig,
     CompositionConfig,
     CuLoRAConfig,
     DeviceConfig,
@@ -41,6 +53,9 @@ __all__ = [
     "BatchFaceAnalysisResult",
     "BatchLoadResult",
     "BatchQualityResult",
+    "BatchSemanticResult",
+    "CLIPConfig",
+    "ClusteringResult",
     "CompositionAnalysis",
     "CompositionConfig",
     "CompositionResult",
@@ -48,6 +63,8 @@ __all__ = [
     "Device",
     "DeviceConfig",
     "DirectoryScanResult",
+    "DiversityAnalysis",
+    "EmbeddingSimilarity",
     "FaceAnalysisConfig",
     "FaceAnalysisResult",
     "FaceDetection",
@@ -64,6 +81,11 @@ __all__ = [
     "ReferenceMatchResult",
     "ReferenceProcessingResult",
     "ReferenceSet",
+    "SemanticAnalysisResult",
+    "SemanticCluster",
+    "SemanticEmbedding",
+    "SemanticSelectionCriteria",
+    "SemanticSelectionResult",
     "SimilarityMatch",
     "TechnicalQualityMetrics",
 ]

@@ -1,9 +1,9 @@
 """Composition analysis configuration."""
 
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CompositionConfig(BaseModel):
@@ -98,11 +98,7 @@ class CompositionConfig(BaseModel):
         default=True, description="Include examples in prompts for better consistency"
     )
 
-    class Config:
-        """Pydantic configuration."""
-
-        json_encoders: ClassVar[dict[type, Any]] = {Path: str}
-        use_enum_values = True
+    model_config = ConfigDict(json_encoders={Path: str}, use_enum_values=True)
 
 
 # Composition analysis prompts
