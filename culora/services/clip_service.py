@@ -454,7 +454,7 @@ class CLIPService:
             cache_dir = str(self.clip_config.model_cache_dir)
 
             self._processor = CLIPProcessor.from_pretrained(
-                model_name, cache_dir=cache_dir
+                model_name, cache_dir=cache_dir, use_fast=True
             )
 
             # Load model with appropriate precision

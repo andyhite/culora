@@ -4,6 +4,12 @@ from .config import ConfigError, InvalidConfigError, MissingConfigError
 from .culora import CuLoRAError
 from .device import DeviceError
 from .image import CuLoRAImageError, ImageLoadError, ImageValidationError
+from .selection import (
+    SelectionConfigurationError,
+    SelectionError,
+    SelectionExecutionError,
+    SelectionInsufficientDataError,
+)
 from .service import (
     CuLoRAServiceError,
     ServiceConfigurationError,
@@ -20,6 +26,10 @@ __all__ = [
     "ImageValidationError",
     "InvalidConfigError",
     "MissingConfigError",
+    "SelectionConfigurationError",
+    "SelectionError",
+    "SelectionExecutionError",
+    "SelectionInsufficientDataError",
     "ServiceConfigurationError",
     "ServiceInitializationError",
 ]

@@ -13,6 +13,7 @@ from culora.cli.commands.faces import faces_app
 from culora.cli.commands.images import images_app
 from culora.cli.commands.pose import pose_app
 from culora.cli.commands.quality import quality_app
+from culora.cli.commands.selection import app as selection_app
 from culora.cli.display.console import console
 from culora.core import ConfigError, CuLoRAError
 from culora.services.clip_service import get_clip_service
@@ -44,6 +45,7 @@ app.add_typer(composition_app, name="composition", help="Image composition analy
 app.add_typer(clip_app, name="clip", help="CLIP semantic embedding analysis")
 app.add_typer(pose_app, name="pose", help="Pose estimation and analysis")
 app.add_typer(duplicate_app, name="duplicate", help="Duplicate detection and analysis")
+app.add_typer(selection_app, name="selection", help="Multi-criteria image selection")
 
 
 @app.callback()
