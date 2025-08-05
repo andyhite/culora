@@ -10,6 +10,7 @@ from culora.cli.commands.config import config_app
 from culora.cli.commands.device import device_app
 from culora.cli.commands.faces import faces_app
 from culora.cli.commands.images import images_app
+from culora.cli.commands.pose import pose_app
 from culora.cli.commands.quality import quality_app
 from culora.cli.display.console import console
 from culora.core import ConfigError, CuLoRAError
@@ -40,6 +41,7 @@ app.add_typer(faces_app, name="faces", help="Face detection and analysis")
 app.add_typer(quality_app, name="quality", help="Image quality assessment")
 app.add_typer(composition_app, name="composition", help="Image composition analysis")
 app.add_typer(clip_app, name="clip", help="CLIP semantic embedding analysis")
+app.add_typer(pose_app, name="pose", help="Pose estimation and analysis")
 
 
 @app.callback()

@@ -27,6 +27,7 @@ from .config import (
     FaceAnalysisConfig,
     ImageConfig,
     LoggingConfig,
+    PoseConfig,
     QualityConfig,
 )
 from .device import Device
@@ -41,6 +42,20 @@ from .face_reference import (
 )
 from .image import BatchLoadResult, DirectoryScanResult, ImageLoadResult, ImageMetadata
 from .memory import Memory
+from .pose import (
+    BatchPoseResult,
+    PoseAnalysis,
+    PoseAnalysisResult,
+    PoseClassification,
+    PoseCluster,
+    PoseClusteringResult,
+    PoseDiversityAnalysis,
+    PoseLandmark,
+    PoseSelectionCriteria,
+    PoseSelectionResult,
+    PoseSimilarity,
+    PoseVector,
+)
 from .quality import (
     BatchQualityResult,
     ImageQualityResult,
@@ -52,6 +67,7 @@ __all__ = [
     "BatchCompositionResult",
     "BatchFaceAnalysisResult",
     "BatchLoadResult",
+    "BatchPoseResult",
     "BatchQualityResult",
     "BatchSemanticResult",
     "CLIPConfig",
@@ -74,6 +90,18 @@ __all__ = [
     "ImageQualityResult",
     "LoggingConfig",
     "Memory",
+    "PoseAnalysis",
+    "PoseAnalysisResult",
+    "PoseClassification",
+    "PoseCluster",
+    "PoseClusteringResult",
+    "PoseConfig",
+    "PoseDiversityAnalysis",
+    "PoseLandmark",
+    "PoseSelectionCriteria",
+    "PoseSelectionResult",
+    "PoseSimilarity",
+    "PoseVector",
     "QualityConfig",
     "QualityScore",
     "ReferenceEmbedding",

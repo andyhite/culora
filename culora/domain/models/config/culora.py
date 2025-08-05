@@ -11,6 +11,7 @@ from .device import DeviceConfig
 from .face import FaceAnalysisConfig
 from .image import ImageConfig
 from .logging import LoggingConfig
+from .pose import PoseConfig
 from .quality import QualityConfig
 
 
@@ -27,6 +28,7 @@ class CuLoRAConfig(BaseModel):
     quality: QualityConfig = Field(default_factory=QualityConfig)
     composition: CompositionConfig = Field(default_factory=CompositionConfig)
     clip: CLIPConfig = Field(default_factory=CLIPConfig)
+    pose: PoseConfig = Field(default_factory=PoseConfig)
 
     model_config = ConfigDict(
         validate_assignment=True,

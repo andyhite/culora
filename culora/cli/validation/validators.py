@@ -102,18 +102,21 @@ def validate_config_file_for_write(value: str | None) -> Path | None:
     return path
 
 
-def validate_output_file(value: str) -> Path:
+def validate_output_file(value: str | None) -> Path | None:
     """Validate output file path for export.
 
     Args:
-        value: Output file path string
+        value: Output file path string or None
 
     Returns:
-        Validated Path object
+        Validated Path object or None if value is None
 
     Raises:
         typer.BadParameter: If path is invalid or not writable
     """
+    if value is None:
+        return None
+
     path = Path(value)
 
     # Check if parent directory exists or can be created

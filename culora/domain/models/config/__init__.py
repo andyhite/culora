@@ -7,6 +7,7 @@ from .device import DeviceConfig
 from .face import FaceAnalysisConfig
 from .image import ImageConfig
 from .logging import LoggingConfig
+from .pose import PoseConfig
 from .quality import QualityConfig
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "FaceAnalysisConfig",
     "ImageConfig",
     "LoggingConfig",
+    "PoseConfig",
     "QualityConfig",
 ]

@@ -5,6 +5,7 @@ from typing import Any
 from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
+from rich.status import Status
 
 from .theme import CULORA_THEME
 
@@ -56,6 +57,10 @@ class CuLoRAConsole:
             self.console.rule(style="muted")
         else:
             self.console.rule(title, style="muted")
+
+    def status(self, text: str) -> Status:
+        """Create a status context manager."""
+        return self.console.status(text)
 
 
 # Global console instance
