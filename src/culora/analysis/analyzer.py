@@ -183,12 +183,12 @@ def _handle_cache_logic(
     )
 
     if not stages_to_analyze and cached_analysis:
-        console.print("[blue]Using cached analysis results[/blue]")
+        console.print("[dim]Using cached analysis results[/dim]")
         return cached_analysis, []
     elif len(stages_to_analyze) < len(enabled_stages):
         console.print(
-            f"[blue]Using cached results for {len(enabled_stages) - len(stages_to_analyze)} "
-            f"stage(s), analyzing {len(stages_to_analyze)} stage(s)[/blue]"
+            f"[dim]Using cached results for {len(enabled_stages) - len(stages_to_analyze)} "
+            f"stage(s), analyzing {len(stages_to_analyze)} stage(s)[/dim]"
         )
 
     return cached_analysis, stages_to_analyze
@@ -732,14 +732,18 @@ def analyze_face(
         if hasattr(result, "boxes") and result.boxes is not None:  # type: ignore[misc]
             for box in result.boxes:  # type: ignore[misc]
                 # Face detection model returns faces directly - no class filtering needed
-                if hasattr(box, "conf"):  # type: ignore[misc]
+                if hasattr(box, "conf") and hasattr(box, "xyxy"):  # type: ignore[misc]
                     conf_tensor = box.conf  # type: ignore[misc]
-                    if len(conf_tensor) > 0:  # type: ignore[misc]
+                    xyxy_tensor = box.xyxy  # type: ignore[misc]
+                    if len(conf_tensor) > 0 and len(xyxy_tensor) > 0:  # type: ignore[misc]
                         confidence = float(conf_tensor[0])  # type: ignore[misc]
+                        # Extract bounding box coordinates (x1, y1, x2, y2)
+                        bbox = xyxy_tensor[0].tolist()  # type: ignore[misc]
                         face_detections.append(
                             {
                                 "confidence": confidence,
                                 "class_name": "face",
+                                "bbox": bbox,  # [x1, y1, x2, y2]
                             }
                         )
 
@@ -791,6 +795,14 @@ def analyze_face(
             metadata["confidence_threshold_met"] = str(
                 confidences[0] >= confidence_threshold
             )
+            # Store bounding boxes for the select command to use
+            # Format: "x1,y1,x2,y2;x1,y1,x2,y2" for multiple faces
+            bbox_strings: list[str] = []
+            for detection in face_detections:
+                bbox = detection["bbox"]
+                bbox_str = f"{bbox[0]:.1f},{bbox[1]:.1f},{bbox[2]:.1f},{bbox[3]:.1f}"
+                bbox_strings.append(bbox_str)
+            metadata["bounding_boxes"] = ";".join(bbox_strings)
 
         return StageResult(
             stage=AnalysisStage.FACE,

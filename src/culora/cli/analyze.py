@@ -15,6 +15,7 @@ from culora.models.analysis import (
     StageConfig,
     StageResult,
 )
+from culora.utils.selection import perform_selection
 
 console = Console()
 
@@ -23,6 +24,14 @@ def analyze_command(
     input_dir: Annotated[
         str, typer.Argument(help="Directory containing images to analyze")
     ],
+    output_dir: Annotated[
+        str | None,
+        typer.Option(
+            "--output",
+            "-o",
+            help="Automatically select and copy curated images to this directory after analysis",
+        ),
+    ] = None,
     no_dedupe: Annotated[
         bool, typer.Option(help="Disable image deduplication")
     ] = False,
@@ -33,6 +42,13 @@ def analyze_command(
     no_cache: Annotated[
         bool, typer.Option(help="Skip cache and force re-analysis of all images")
     ] = False,
+    draw_boxes: Annotated[
+        bool,
+        typer.Option(
+            "--draw-boxes",
+            help="Draw bounding boxes on detected faces with confidence scores (only used with --output)",
+        ),
+    ] = False,
 ) -> None:
     """Analyze images in a directory for curation.
 
@@ -42,24 +58,18 @@ def analyze_command(
 
     Face detection uses a specialized YOLO11 face model. On first run, it will
     download the model weights (~12MB) which are cached for future use.
+
+    If --output is specified, curated images will be automatically copied to
+    the output directory after analysis is complete. Use --draw-boxes with
+    --output to annotate faces with bounding boxes and confidence scores.
     """
     input_path = Path(input_dir)
     console.print(f"[bold green]Analyzing images in:[/bold green] {input_path}")
 
-    # Determine enabled stages for display
-    stages: list[str] = []
-    if not no_dedupe:
-        stages.append("deduplication")
-    if not no_quality:
-        stages.append("quality assessment")
-    if not no_face:
-        stages.append("face detection")
-
-    if stages:
-        console.print(f"[blue]Enabled stages:[/blue] {', '.join(stages)}")
-    else:
-        console.print("[yellow]No analysis stages enabled[/yellow]")
-        return
+    # Validate options
+    if draw_boxes and not output_dir:
+        console.print("[red]Error:[/red] --draw-boxes can only be used with --output")
+        raise typer.Exit(1)
 
     try:
         # Run the analysis
@@ -73,6 +83,27 @@ def analyze_command(
 
         # Display results summary
         _display_analysis_summary(analysis)
+
+        # If output directory is specified, automatically run selection
+        if output_dir:
+            console.print("\n[bold blue]Selecting curated images...[/bold blue]")
+
+            # Perform selection using shared logic
+            try:
+                selected_count, total_count = perform_selection(
+                    input_dir=input_dir,
+                    output_dir=output_dir,
+                    draw_boxes=draw_boxes,
+                    dry_run=False,
+                    console=console,
+                    analysis_results=analysis,
+                )
+                console.print(
+                    f"[green]Successfully selected {selected_count} of {total_count} images[/green]"
+                )
+            except RuntimeError as e:
+                console.print(f"[red]Selection Error:[/red] {e}")
+                raise typer.Exit(1) from e
 
     except FileNotFoundError:
         console.print(f"[red]Error:[/red] Directory not found: {input_path}")
@@ -122,9 +153,6 @@ def _add_stage_columns(table: Table, stage: AnalysisStage) -> None:
         table.add_column("Contrast", justify="center", width=8, style="bold")
     elif stage == AnalysisStage.FACE:
         width = 20  # For "X faces (best: 0.920)" or "2 low (0.400<0.500)"
-        table.add_column(stage.value.title(), justify="center", width=width)
-    else:
-        width = 12  # Default
         table.add_column(stage.value.title(), justify="center", width=width)
 
 
@@ -195,11 +223,8 @@ def _display_summary_stats(analysis: DirectoryAnalysis) -> None:
     Args:
         analysis: DirectoryAnalysis to display stats for.
     """
-    console.print(f"\n[bold]Summary:[/bold] {analysis.total_images} images analyzed")
-    console.print(f"✅ [green]{len(analysis.passed_images)} passed all stages[/green]")
-    console.print(
-        f"❌ [red]{len(analysis.failed_images)} failed at least one stage[/red]"
-    )
+    console.print(f"\n✅ [green]{len(analysis.passed_images)} passed[/green]")
+    console.print(f"❌ [red]{len(analysis.failed_images)} failed[/red]")
     console.print(f"⏭️  [yellow]{len(analysis.skipped_images)} skipped[/yellow]")
 
 
@@ -209,13 +234,6 @@ def _display_analysis_summary(analysis: DirectoryAnalysis) -> None:
     Args:
         analysis: DirectoryAnalysis results to display.
     """
-    console.print("\n[bold green]Analysis Complete![/bold green]")
-
-    # Show enabled stages
-    if analysis.enabled_stages:
-        stages_str = ", ".join([stage.value for stage in analysis.enabled_stages])
-        console.print(f"[blue]Stages analyzed:[/blue] {stages_str}")
-
     # Create and populate results table
     table = _create_results_table(analysis)
     _populate_results_table(table, analysis)
@@ -223,9 +241,6 @@ def _display_analysis_summary(analysis: DirectoryAnalysis) -> None:
 
     # Show summary statistics
     _display_summary_stats(analysis)
-
-    # Show cache info
-    console.print("\n[dim]Results cached for future runs[/dim]")
 
 
 def _format_result_status(result: AnalysisResult) -> str:
@@ -441,12 +456,7 @@ def format_face_result(stage_result: StageResult) -> str:
                 "highest_confidence", "0.000"
             )
 
-            if count == 1:
-                return f"[green]1 face ({highest_confidence})[/green]"
-            elif count > 1:
-                return f"[green]{count} faces (best: {highest_confidence})[/green]"
-            else:
-                return "[green]detected[/green]"
+            return f"[green]{count} ({float(highest_confidence) * 100:.2f}%)[/green]"
         return "[green]detected[/green]"
     elif stage_result.result == AnalysisResult.FAIL:
         if stage_result.metadata:
@@ -458,10 +468,7 @@ def format_face_result(stage_result: StageResult) -> str:
                 highest_confidence = stage_result.metadata.get(
                     "highest_confidence", "0.000"
                 )
-                confidence_threshold = stage_result.metadata.get(
-                    "confidence_threshold", "0.500"
-                )
-                return f"[red]{count} low ({highest_confidence}<{confidence_threshold})[/red]"
+                return f"[red]{count} ({float(highest_confidence) * 100:.2f}%)[/red]"
             else:
                 # No faces detected at all
                 return "[red]none[/red]"

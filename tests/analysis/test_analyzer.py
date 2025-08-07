@@ -292,9 +292,15 @@ class TestAnalyzeFace:
         # Mock YOLO face detection results (no class filtering needed)
         mock_box1 = MagicMock()
         mock_box1.conf = [0.85]
+        mock_tensor1 = MagicMock()
+        mock_tensor1.tolist.return_value = [100.0, 50.0, 200.0, 150.0]
+        mock_box1.xyxy = [mock_tensor1]
 
         mock_box2 = MagicMock()
         mock_box2.conf = [0.92]
+        mock_tensor2 = MagicMock()
+        mock_tensor2.tolist.return_value = [250.0, 75.0, 350.0, 175.0]
+        mock_box2.xyxy = [mock_tensor2]
 
         mock_result = MagicMock()
         mock_result.boxes = [mock_box1, mock_box2]
@@ -325,6 +331,12 @@ class TestAnalyzeFace:
         assert result.metadata["confidence_threshold_met"] == "True"
         assert result.metadata["model"] == "AdamCodd/YOLOv11n-face-detection:model.pt"
         assert result.metadata["detection_type"] == "face"
+        # Check bounding boxes are stored (sorted by highest confidence first)
+        assert "bounding_boxes" in result.metadata
+        assert (
+            "250.0,75.0,350.0,175.0;100.0,50.0,200.0,150.0"
+            in result.metadata["bounding_boxes"]
+        )
 
     @patch("culora.analysis.analyzer.get_cached_yolo_model")
     def test_analyze_face_no_faces(self, mock_get_cached_model: Any) -> None:
@@ -364,9 +376,15 @@ class TestAnalyzeFace:
         # Mock YOLO face detection results with low confidence (below default 0.5 threshold)
         mock_box1 = MagicMock()
         mock_box1.conf = [0.3]  # Below default threshold
+        mock_tensor1 = MagicMock()
+        mock_tensor1.tolist.return_value = [120.0, 60.0, 220.0, 160.0]
+        mock_box1.xyxy = [mock_tensor1]
 
         mock_box2 = MagicMock()
         mock_box2.conf = [0.4]  # Below default threshold
+        mock_tensor2 = MagicMock()
+        mock_tensor2.tolist.return_value = [270.0, 85.0, 370.0, 185.0]
+        mock_box2.xyxy = [mock_tensor2]
 
         mock_result = MagicMock()
         mock_result.boxes = [mock_box1, mock_box2]
@@ -450,6 +468,9 @@ class TestAnalyzeFace:
         # Mock YOLO face detection results
         mock_box = MagicMock()
         mock_box.conf = [0.75]
+        mock_tensor = MagicMock()
+        mock_tensor.tolist.return_value = [150.0, 70.0, 250.0, 170.0]
+        mock_box.xyxy = [mock_tensor]
 
         mock_result = MagicMock()
         mock_result.boxes = [mock_box]

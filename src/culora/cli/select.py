@@ -4,6 +4,7 @@ import shutil
 from pathlib import Path
 from typing import Annotated
 
+import cv2
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -12,6 +13,87 @@ from culora.models.analysis import AnalysisResult, AnalysisStage, ImageAnalysis
 from culora.utils.cache import load_analysis_cache
 
 console = Console()
+
+
+def draw_face_bounding_boxes(
+    image_path: Path, output_path: Path, face_metadata: dict[str, str]
+) -> None:
+    """Draw bounding boxes on image for detected faces with confidence scores.
+
+    Args:
+        image_path: Path to the source image
+        output_path: Path where the annotated image should be saved
+        face_metadata: Face analysis metadata containing bounding boxes and confidence scores
+    """
+    # Load the image
+    try:
+        image = cv2.imread(str(image_path))
+        if image is None:  # type: ignore[reportUnnecessaryComparison]
+            raise ValueError("Failed to load image")
+    except Exception:
+        # Fallback to copying original if image can't be loaded
+        shutil.copy2(image_path, output_path)
+        return
+
+    # Parse bounding boxes and confidence scores
+    bbox_str = face_metadata.get("bounding_boxes", "")
+    confidence_str = face_metadata.get("confidence_scores", "")
+
+    if not bbox_str or not confidence_str:
+        # No face data, just copy original
+        shutil.copy2(image_path, output_path)
+        return
+
+    # Parse bounding boxes: "x1,y1,x2,y2;x1,y1,x2,y2"
+    bboxes: list[list[float]] = []
+    for bbox_part in bbox_str.split(";"):
+        if bbox_part.strip():
+            coords = [float(x) for x in bbox_part.split(",")]
+            if len(coords) == 4:
+                bboxes.append(coords)
+
+    # Parse confidence scores: "0.850,0.920"
+    confidences: list[float] = []
+    for conf_part in confidence_str.split(","):
+        if conf_part.strip():
+            confidences.append(float(conf_part))
+
+    # Draw bounding boxes
+    for i, (bbox, confidence) in enumerate(zip(bboxes, confidences, strict=False)):
+        x1, y1, x2, y2 = [int(coord) for coord in bbox]
+
+        # Different colors for different faces (cycle through colors)
+        colors = [(0, 255, 0), (255, 0, 0), (0, 0, 255), (255, 255, 0), (255, 0, 255)]
+        color = colors[i % len(colors)]
+
+        # Draw bounding box
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
+
+        # Add confidence score label
+        label = f"Face {confidence:.3f}"
+        label_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
+
+        # Position label above the bounding box
+        label_y = y1 - 10 if y1 - 10 > 20 else y1 + 25
+        cv2.rectangle(
+            image,
+            (x1, label_y - label_size[1] - 5),
+            (x1 + label_size[0] + 5, label_y + 5),
+            color,
+            -1,
+        )
+        cv2.putText(
+            image,
+            label,
+            (x1 + 2, label_y),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            2,
+        )
+
+    # Save the annotated image
+    cv2.imwrite(str(output_path), image)
 
 
 def select_command(
@@ -24,12 +106,22 @@ def select_command(
     dry_run: Annotated[
         bool, typer.Option(help="Show what would be selected without copying files")
     ] = False,
+    draw_boxes: Annotated[
+        bool,
+        typer.Option(
+            "--draw-boxes",
+            help="Draw bounding boxes on detected faces with confidence scores",
+        ),
+    ] = False,
 ) -> None:
     """Select and copy curated images to output directory.
 
     This command copies images that passed all enabled analysis stages from
     the analyzed directory to the specified output directory. Images are
     renamed sequentially for training use.
+
+    Use --draw-boxes to annotate detected faces with bounding boxes and
+    confidence scores on the copied images.
     """
     input_path = Path(input_dir).resolve()
     output_path = Path(output_dir).resolve()
@@ -39,6 +131,9 @@ def select_command(
 
     if dry_run:
         console.print("[blue]Dry run mode - no files will be copied[/blue]")
+
+    if draw_boxes:
+        console.print("[blue]Bounding boxes will be drawn on detected faces[/blue]")
 
     try:
         # Load analysis results from cache
@@ -74,11 +169,34 @@ def select_command(
             target_path = output_path / target_filename
 
             if dry_run:
+                box_info = " (with boxes)" if draw_boxes else ""
                 console.print(
-                    f"[dim]Would copy:[/dim] {source_path.name} → {target_filename}"
+                    f"[dim]Would copy:[/dim] {source_path.name} → {target_filename}{box_info}"
                 )
             else:
-                shutil.copy2(source_path, target_path)
+                if draw_boxes:
+                    # Check if this image has face detection results
+                    face_metadata = None
+                    for stage_result in image.stage_results:
+                        if (
+                            stage_result.stage == AnalysisStage.FACE
+                            and stage_result.result == AnalysisResult.PASS
+                            and stage_result.metadata
+                        ):
+                            face_metadata = stage_result.metadata
+                            break
+
+                    if face_metadata:
+                        # Draw bounding boxes and save annotated image
+                        draw_face_bounding_boxes(
+                            source_path, target_path, face_metadata
+                        )
+                    else:
+                        # No face detection data, just copy original
+                        shutil.copy2(source_path, target_path)
+                else:
+                    # Normal copy without annotations
+                    shutil.copy2(source_path, target_path)
                 copied_count += 1
 
         # Display results
