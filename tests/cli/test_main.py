@@ -1,5 +1,7 @@
 """Tests for main CLI module."""
 
+import tempfile
+
 from culora.cli.main import app
 from typer.testing import CliRunner
 
@@ -28,3 +30,96 @@ def test_select_command():
     assert result.exit_code == 0
     assert "Selecting images from:" in result.stdout
     assert "Selection not yet implemented" in result.stdout
+
+
+def test_no_arguments_shows_help():
+    """Test that running with no arguments shows help."""
+    runner = CliRunner()
+    result = runner.invoke(app, [])
+    # Typer shows help when no_args_is_help=True
+    assert "Usage:" in result.stdout
+    assert (
+        "A command-line tool for intelligently curating image datasets" in result.stdout
+    )
+
+
+def test_analyze_with_stage_flags():
+    """Test analyze command with stage disable flags."""
+    runner = CliRunner()
+
+    # Test with all stages disabled
+    result = runner.invoke(
+        app, ["analyze", "/tmp/test", "--no-dedupe", "--no-quality", "--no-face"]
+    )
+    assert result.exit_code == 0
+    assert "Enabled stages:" in result.stdout
+    # Should show empty stages or indicate none enabled
+
+    # Test with some stages disabled
+    result = runner.invoke(app, ["analyze", "/tmp/test", "--no-dedupe"])
+    assert result.exit_code == 0
+    assert "quality assessment" in result.stdout
+    assert "face detection" in result.stdout
+    assert "deduplication" not in result.stdout
+
+
+def test_select_with_options():
+    """Test select command with options."""
+    runner = CliRunner()
+
+    # Test with custom input directory
+    result = runner.invoke(app, ["select", "/tmp/output", "--input", "/tmp/custom"])
+    assert result.exit_code == 0
+    assert "Selecting images from: /tmp/custom" in result.stdout
+    assert "Output directory: /tmp/output" in result.stdout
+
+    # Test with dry run
+    result = runner.invoke(app, ["select", "/tmp/output", "--dry-run"])
+    assert result.exit_code == 0
+    assert "Dry run mode" in result.stdout
+    assert "no files will be copied" in result.stdout
+
+
+def test_analyze_command_options():
+    """Test analyze command shows enabled stages correctly."""
+    runner = CliRunner()
+
+    # Test default (all stages enabled)
+    result = runner.invoke(app, ["analyze", "/tmp/test"])
+    assert result.exit_code == 0
+    assert "deduplication" in result.stdout
+    assert "quality assessment" in result.stdout
+    assert "face detection" in result.stdout
+
+    # Test individual stage disabling
+    result = runner.invoke(app, ["analyze", "/tmp/test", "--no-quality"])
+    assert result.exit_code == 0
+    assert "deduplication" in result.stdout
+    assert "face detection" in result.stdout
+    assert "quality assessment" not in result.stdout
+
+
+def test_analyze_with_real_directory():
+    """Test analyze command with a real temporary directory."""
+    runner = CliRunner()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        result = runner.invoke(app, ["analyze", temp_dir])
+        assert result.exit_code == 0
+        # Rich may format output with newlines, so check for directory path anywhere in output
+        assert temp_dir in result.stdout
+        assert "Analyzing images in:" in result.stdout
+        assert "Analysis not yet implemented" in result.stdout
+
+
+def test_missing_required_arguments():
+    """Test commands with missing required arguments."""
+    runner = CliRunner()
+
+    # Analyze without directory should fail
+    result = runner.invoke(app, ["analyze"])
+    assert result.exit_code != 0
+
+    # Select without output directory should fail
+    result = runner.invoke(app, ["select"])
+    assert result.exit_code != 0
