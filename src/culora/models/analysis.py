@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -20,6 +21,20 @@ class AnalysisResult(str, Enum):
     PASS = "pass"
     FAIL = "fail"
     SKIP = "skip"
+
+
+class StageConfig(BaseModel):
+    """Configuration for a specific analysis stage."""
+
+    stage: AnalysisStage
+    config: dict[str, Any] = {}
+    version: str = "1.0"
+
+    def __hash__(self) -> int:
+        """Make StageConfig hashable for set operations."""
+        # Create a stable hash based on stage and config
+        config_items = tuple(sorted(self.config.items()))
+        return hash((self.stage, config_items, self.version))
 
 
 class StageResult(BaseModel):
@@ -75,6 +90,7 @@ class DirectoryAnalysis(BaseModel):
     input_directory: str
     analysis_time: datetime
     enabled_stages: list[AnalysisStage]
+    stage_configs: list[StageConfig] = []
     images: list[ImageAnalysis] = []
 
     @property
@@ -96,3 +112,17 @@ class DirectoryAnalysis(BaseModel):
     def skipped_images(self) -> list[ImageAnalysis]:
         """Images that were skipped."""
         return [img for img in self.images if img.overall_result == AnalysisResult.SKIP]
+
+    def get_stage_config(self, stage: AnalysisStage) -> StageConfig | None:
+        """Get configuration for a specific stage."""
+        for config in self.stage_configs:
+            if config.stage == stage:
+                return config
+        return None
+
+    def has_stage_results(self, stage: AnalysisStage) -> bool:
+        """Check if any images have results for the given stage."""
+        return any(
+            any(result.stage == stage for result in image.stage_results)
+            for image in self.images
+        )

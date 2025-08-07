@@ -29,6 +29,17 @@ def get_cache_dir() -> Path:
     return cache_dir
 
 
+def get_models_dir() -> Path:
+    """Get the models directory for ML model storage.
+
+    Returns:
+        Path to the models directory, creating it if it doesn't exist.
+    """
+    models_dir = get_app_data_dir() / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    return models_dir
+
+
 def get_cache_file_path(input_directory: Path) -> Path:
     """Get the cache file path for a given input directory.
 

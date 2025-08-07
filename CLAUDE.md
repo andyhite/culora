@@ -12,12 +12,12 @@ CuLoRA is a command-line tool for intelligently curating image datasets for LoRA
 - Only write code required for the current task; no speculative or dead code.
 - All code must be reachable from the CLI or tests.
 - Immediately remove any unused code.
-- **Before presenting any work for review,** run lint (`ruff`), typecheck (`pylance` or `mypy`), and tests (`pytest`).
-  `make pre-commit` must also pass before any commit or merge.
+- **Before presenting any work for review**, you must run `make check` and it must pass.
 - All functions, methods, and variables must use type hints.
 - All user-facing output must use Rich; never use `print()` or logging for output.
 - Mock all external dependencies in tests.
 - Summarize research findings for each analysis stage in PRs or code comments.
+- Analysis pipeline library decisions are documented in @docs/analysis-libraries.md
 - Pause for review after every task.
 
 ---
@@ -101,6 +101,16 @@ CuLoRA is a command-line tool for intelligently curating image datasets for LoRA
 - Ask for clarification if requirements are unclear.
 - Update this file if new conventions or patterns emerge.
 - Document major decisions and trade-offs in PRs or code comments.
+
+---
+
+## Known Issues & Workarounds
+
+- **MediaPipe Messages**: Face detection outputs minimal technical messages from MediaPipe/TensorFlow (typically 2 lines total). These are harmless and indicate proper GPU/CPU initialization. For completely clean output:
+
+  ```bash
+  culora analyze <input_dir> 2>/dev/null
+  ```
 
 ---
 

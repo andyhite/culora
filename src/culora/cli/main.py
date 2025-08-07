@@ -11,6 +11,7 @@ app = typer.Typer(
     help="A command-line tool for intelligently curating image datasets for LoRA training.",
     no_args_is_help=True,
 )
+
 console = Console()
 
 
@@ -27,7 +28,6 @@ def version() -> None:
 
 analyze.register_command(app)
 select.register_command(app)
-
 
 if __name__ == "__main__":
     app()

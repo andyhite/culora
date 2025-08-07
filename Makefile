@@ -1,4 +1,4 @@
-.PHONY: help format lint typecheck test pre-commit pre-commit-install install
+.PHONY: help install format lint typecheck test check
 
 help:  ## Show this help message
 	@echo "Available commands:"
@@ -12,21 +12,22 @@ install:  ## Install dependencies and setup pre-commit hooks
 
 format:  ## Format code with black and isort
 	@echo "Formatting code..."
-	@poetry run black .
-	@poetry run isort .
+	@poetry run pre-commit run black --all-files
+	@echo "\nSorting imports..."
+	@poetry run pre-commit run isort --all-files
 
 lint:  ## Lint code with ruff
 	@echo "Linting code..."
-	@poetry run ruff check --fix .
+	@poetry run pre-commit run ruff --all-files
 
 typecheck:  ## Type check code with pyright
-	@echo "Type checking code..."
-	@poetry run pyright .
+	@echo "Type-checking code..."
+	@poetry run pre-commit run pyright --all-files
 
 test:  ## Run tests with pytest
-	@echo "Running tests..."
-	@poetry run pytest
+	@echo "Testing code..."
+	@poetry run pre-commit run pytest --all-files
 
-pre-commit:  ## Run all pre-commit hooks
-	@echo "Running pre-commit hooks..."
+check:  ## Run all checks
+	@echo "Running all checks..."
 	@poetry run pre-commit run --all-files
