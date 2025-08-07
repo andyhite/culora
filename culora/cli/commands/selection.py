@@ -11,7 +11,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.tree import Tree
 
-from culora.cli.utils import handle_cli_error, setup_logging
+from culora.cli.utils import handle_cli_error
 from culora.core.exceptions import SelectionError
 from culora.domain.models.config.selection import SelectionConfig
 from culora.domain.models.selection import SelectionCandidate
@@ -64,7 +64,6 @@ def analyze_selection_candidates(
     This command performs selection analysis without actually copying files,
     showing detailed statistics about the selection process and results.
     """
-    setup_logging(verbose)
 
     try:
         with handle_cli_error():
@@ -163,16 +162,12 @@ def select_images(
     dry_run: bool = typer.Option(
         False, "--dry-run", help="Show what would be selected without copying"
     ),
-    verbose: bool = typer.Option(
-        False, "--verbose", "-v", help="Enable verbose output"
-    ),
 ) -> None:
     """Select and copy images using multi-criteria selection algorithms.
 
     Performs actual selection and copies chosen images to the output directory,
     with optional metadata generation and progress reporting.
     """
-    setup_logging(verbose)
 
     try:
         with handle_cli_error():

@@ -1,5 +1,7 @@
 """Composition analysis service using vision-language models."""
 
+from __future__ import annotations
+
 import json
 import statistics
 import time
@@ -72,7 +74,7 @@ class CompositionService:
         self.device_service = get_device_service()
 
         # Model components (loaded on first use)
-        self._model: AutoModelForCausalLM | None = None
+        self._model: Any | None = None
         self._tokenizer: AutoTokenizer | None = None
         self._device: torch.device | None = None
 
@@ -205,9 +207,14 @@ class CompositionService:
             )
 
             # Move model to device and set to evaluation mode
-            if self._model is not None and self._device is not None:
-                self._model = self._model.to(self._device)  # type: ignore[union-attr]
-                self._model.eval()  # type: ignore[union-attr]
+            if (
+                self._model is not None
+                and self._device is not None
+                and hasattr(self._model, "to")
+                and hasattr(self._model, "eval")
+            ):
+                self._model.to(self._device)
+                self._model.eval()
 
             logger.info(f"Model loaded successfully on {self._device}")
 
@@ -259,17 +266,14 @@ class CompositionService:
             if hasattr(self._model, "encode_image") and hasattr(
                 self._model, "answer_question"
             ):
-                # Encode the image first
                 encoded = self._model.encode_image(image)
-                # Get the analysis response
                 response = self._model.answer_question(encoded, prompt, self._tokenizer)
                 return str(response)
-            else:
-                # Fallback for other vision-language models
-                raise CompositionServiceError(
-                    f"Unsupported model type: {type(self._model)}. "
-                    "Model must support encode_image and answer_question methods."
-                )
+            # Fallback for other vision-language models
+            raise CompositionServiceError(
+                f"Unsupported model type: {type(self._model)}. "
+                "Model must support encode_image and answer_question methods."
+            )
 
         except Exception as e:
             raise CompositionAnalysisError(f"Failed to generate analysis: {e}") from e
@@ -377,7 +381,7 @@ class CompositionService:
         logger.debug("No matching closing brace found in response")
         return None
 
-    def _parse_enum_field(self, value: Any, enum_class: type[Any], default: Any) -> Any:
+    def _parse_enum_field(self, value: Any, enum_class: type, default: Any) -> Any:
         """Parse and validate enum field from response.
 
         Args:
@@ -393,7 +397,7 @@ class CompositionService:
 
         if isinstance(value, str):
             # Try to find matching enum value
-            for enum_value in enum_class:
+            for enum_value in getattr(enum_class, "__members__", {}).values():
                 if enum_value.value.lower() == value.lower():
                     return enum_value
                 if enum_value.name.lower() == value.lower():

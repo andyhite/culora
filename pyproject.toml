@@ -101,7 +101,7 @@ strict_equality = true
 show_error_codes = true
 
 [[tool.mypy.overrides]]
-module = ["insightface.*", "mediapipe.*", "imquality.*", "imagehash.*", "cv2.*", "piq.*"]
+module = ["insightface.*", "mediapipe.*", "imquality.*", "imagehash.*", "cv2.*", "piq.*", "sklearn.*"]
 ignore_missing_imports = true
 
 [tool.ruff]

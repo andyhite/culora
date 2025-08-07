@@ -28,7 +28,8 @@ class ImageFixtures:
         """
         image = Image.new("RGB", (width, height), color=color)
         # Store format information for later use
-        image._test_format = format  # type: ignore[attr-defined]
+        # Store format in info dict to avoid dynamic attributes
+        image.info["_test_format"] = format
         return image
 
     @staticmethod
@@ -45,7 +46,7 @@ class ImageFixtures:
             format: Optional format override
         """
         if format is None:
-            format = getattr(image, "_test_format", None) or image.format or "JPEG"
+            format = image.info.get("_test_format") or image.format or "JPEG"
 
         # Ensure parent directory exists
         path.parent.mkdir(parents=True, exist_ok=True)

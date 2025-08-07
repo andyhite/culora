@@ -6,8 +6,8 @@ from collections import Counter
 from typing import Any
 
 import numpy as np
-from sklearn.cluster import KMeans  # type: ignore[import-untyped]
-from sklearn.metrics.pairwise import euclidean_distances  # type: ignore[import-untyped]
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import euclidean_distances
 
 from culora.core.exceptions import (
     SelectionConfigurationError,

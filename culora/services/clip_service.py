@@ -7,8 +7,8 @@ from typing import Any
 import numpy as np
 import torch
 from PIL import Image
-from sklearn.cluster import DBSCAN, KMeans  # type: ignore[import-untyped]
-from sklearn.metrics import silhouette_score  # type: ignore[import-untyped]
+from sklearn.cluster import DBSCAN, KMeans
+from sklearn.metrics import silhouette_score
 from transformers import CLIPModel, CLIPProcessor
 
 from culora.core import CuLoRAError
@@ -362,7 +362,7 @@ class CLIPService:
                 method=method,
                 num_clusters=len(semantic_clusters),
                 clusters=semantic_clusters,
-                silhouette_score=silhouette,
+                silhouette_score=float(silhouette),
                 inertia=inertia,
                 cluster_size_distribution=size_distribution,
                 processing_time=processing_time,
@@ -472,7 +472,7 @@ class CLIPService:
 
             # Move model to device
             if self._model is not None and self._device is not None:
-                self._model.to(self._device)  # type: ignore[arg-type]
+                self._model = self._model.to(self._device)  # type: ignore[arg-type]
                 self._model.eval()
 
             logger.info(f"CLIP model loaded successfully on {self._device}")
@@ -525,17 +525,20 @@ class CLIPService:
 
             # Extract embeddings
             with torch.no_grad():
-                image_features = self._model.get_image_features(**inputs)
+                image_features = self._model.get_image_features(
+                    pixel_values=inputs["pixel_values"]
+                )
 
             # Convert to numpy and normalize
             embedding = image_features.cpu().numpy().flatten()
 
             if self.clip_config.normalize_embeddings:
-                norm = np.linalg.norm(embedding)
+                norm = float(np.linalg.norm(embedding))
                 if norm > 0:
                     embedding = embedding / norm
+                embedding = np.asarray(embedding)
 
-            return embedding  # type: ignore[no-any-return]
+            return np.asarray(embedding, dtype=np.float32)
 
         except Exception as e:
             raise EmbeddingExtractionError(
@@ -554,8 +557,8 @@ class CLIPService:
         # Simple heuristic: higher norm suggests more confident embedding
         norm = np.linalg.norm(embedding)
         # Normalize to [0, 1] range (assuming typical norms are < 10)
-        confidence = min(1.0, norm / 10.0)
-        return float(confidence)  # type: ignore[arg-type]
+        confidence = min(1.0, float(norm) / 10.0)
+        return float(confidence)
 
     def _calculate_batch_statistics(
         self,

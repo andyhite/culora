@@ -1,7 +1,6 @@
 """Shared test fixtures and configuration."""
 
 import tempfile
-import warnings
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
@@ -269,4 +268,3 @@ def pytest_configure(config: Any) -> None:
     config.addinivalue_line(
         "markers", "mps: marks tests that require Apple Silicon MPS"
     )
-

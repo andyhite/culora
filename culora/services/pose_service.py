@@ -16,8 +16,8 @@ os.environ["GLOG_LOGTOSTDERR"] = "0"
 import mediapipe as mp
 import numpy as np
 from PIL import Image
-from sklearn.cluster import KMeans  # type: ignore[import-untyped]
-from sklearn.metrics import silhouette_score  # type: ignore[import-untyped]
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 
 from culora.core.exceptions import CuLoRAError
 from culora.domain import CuLoRAConfig
@@ -96,7 +96,7 @@ class PoseService:
 
         self.logger.info("PoseService initialized")
 
-    def _get_pose_estimator(self) -> mp.solutions.pose.Pose:
+    def _get_pose_estimator(self) -> Any:
         """Get or create MediaPipe pose estimator."""
         if self._pose_estimator is None:
             self.logger.debug("Creating MediaPipe pose estimator")
@@ -104,6 +104,9 @@ class PoseService:
             # Suppress MediaPipe verbose output
             os.environ["GLOG_MINLOGLEVEL"] = "2"  # Suppress INFO and WARNING
             warnings.filterwarnings("ignore", category=UserWarning, module="mediapipe")
+
+            if self._mp_pose is None:
+                raise ImportError("mediapipe.solutions.pose is not available")
 
             with (
                 contextlib.redirect_stdout(io.StringIO()),
@@ -123,6 +126,7 @@ class PoseService:
         # Resize if too large
         max_w, max_h = self.pose_config.max_image_size
         if image.size[0] > max_w or image.size[1] > max_h:
+            image = image.copy()
             image.thumbnail((max_w, max_h), Image.LANCZOS)
 
         # Convert to RGB numpy array
@@ -131,9 +135,9 @@ class PoseService:
 
     def _extract_landmarks(self, results: Any) -> list[PoseLandmark]:
         """Extract pose landmarks from MediaPipe results."""
-        landmarks = []
+        landmarks: list[PoseLandmark] = []
 
-        if results.pose_landmarks:
+        if getattr(results, "pose_landmarks", None):
             for landmark in results.pose_landmarks.landmark:
                 pose_landmark = PoseLandmark(
                     x=landmark.x,
@@ -979,7 +983,7 @@ class PoseService:
         return PoseClusteringResult(
             num_clusters=len(clusters),
             clusters=clusters,
-            silhouette_score=silhouette,
+            silhouette_score=float(silhouette),
             cluster_size_distribution=cluster_size_dist,
             category_distribution=category_dist,
             processing_time=processing_time,

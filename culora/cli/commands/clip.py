@@ -1,7 +1,9 @@
 """CLIP semantic embedding CLI commands."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import Annotated, Any
 
 import typer
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
@@ -9,17 +11,15 @@ from rich.table import Table
 
 from culora.cli.display.console import console
 from culora.domain.enums.clip import ClusteringMethod, SimilarityMetric
+from culora.domain.models.clip import (
+    BatchSemanticResult,
+    ClusteringResult,
+    DiversityAnalysis,
+    SemanticAnalysisResult,
+)
 from culora.services.clip_service import CLIPService, CLIPServiceError
 from culora.services.config_service import ConfigService
 from culora.services.image_service import ImageService, ImageServiceError
-
-if TYPE_CHECKING:
-    from culora.domain.models.clip import (
-        BatchSemanticResult,
-        ClusteringResult,
-        DiversityAnalysis,
-        SemanticAnalysisResult,
-    )
 
 # Create CLIP sub-application
 clip_app = typer.Typer(
@@ -139,24 +139,34 @@ def calculate_similarity(
         result1 = image_service.load_image(image1)
         result2 = image_service.load_image(image2)
 
-        if not (result1.success and result2.success):
+        if not (
+            result1.success
+            and result2.success
+            and result1.image is not None
+            and result2.image is not None
+        ):
             console.error("Failed to load one or both images")
             raise typer.Exit(1)
 
         console.info("Extracting semantic embeddings...")
 
         # Extract embeddings
-        embedding_result1 = clip_service.extract_embedding(result1.image, image1)  # type: ignore[arg-type]
-        embedding_result2 = clip_service.extract_embedding(result2.image, image2)  # type: ignore[arg-type]
+        embedding_result1 = clip_service.extract_embedding(result1.image, image1)
+        embedding_result2 = clip_service.extract_embedding(result2.image, image2)
 
-        if not (embedding_result1.success and embedding_result2.success):
+        if not (
+            embedding_result1.success
+            and embedding_result2.success
+            and embedding_result1.embedding is not None
+            and embedding_result2.embedding is not None
+        ):
             console.error("Failed to extract embeddings from one or both images")
             raise typer.Exit(1)
 
         # Calculate similarity
         similarity = clip_service.calculate_similarity(
-            embedding_result1.embedding,  # type: ignore[arg-type]
-            embedding_result2.embedding,  # type: ignore[arg-type]
+            embedding_result1.embedding,
+            embedding_result2.embedding,
         )
 
         # Display results
@@ -491,7 +501,7 @@ def _analyze_directory(
 
 
 def _display_single_embedding_result(
-    result: "SemanticAnalysisResult", show_details: bool
+    result: SemanticAnalysisResult, show_details: bool
 ) -> None:
     """Display results for a single embedding analysis."""
     if not result.success or not result.embedding:
@@ -570,7 +580,7 @@ def _display_similarity_result(similarity: Any, _show_embeddings: bool) -> None:
     console.console.print(table)
 
 
-def _display_diversity_analysis(analysis: "DiversityAnalysis", max_pairs: int) -> None:
+def _display_diversity_analysis(analysis: DiversityAnalysis, max_pairs: int) -> None:
     """Display diversity analysis results."""
     # Summary table
     table = Table(title="Semantic Diversity Analysis")
@@ -620,8 +630,8 @@ def _display_diversity_analysis(analysis: "DiversityAnalysis", max_pairs: int) -
 
 
 def _display_batch_results(
-    batch_result: "BatchSemanticResult",
-    clustering_result: "ClusteringResult | None",
+    batch_result: BatchSemanticResult,
+    clustering_result: ClusteringResult | None,
     show_details: bool,
 ) -> None:
     """Display results for batch semantic analysis."""

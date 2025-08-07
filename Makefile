@@ -43,12 +43,12 @@ format:
 # Linting
 lint:
 	@echo "Running Ruff linter..."
-	@poetry run ruff check . --fix
+	@poetry run ruff check ./culora ./tests --fix
 
 # Type checking
 typecheck:
 	@echo "Running mypy type checking..."
-	@poetry run mypy .
+	@poetry run mypy ./culora ./tests
 
 # Combined quality checks
 check: format lint typecheck

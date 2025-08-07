@@ -2,12 +2,13 @@
 
 import warnings
 from pathlib import Path
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
 from PIL import Image
-from sklearn.exceptions import ConvergenceWarning  # type: ignore[import-untyped]
+from sklearn.exceptions import ConvergenceWarning
 
 from culora.domain import CuLoRAConfig
 from culora.domain.enums.clip import CLIPModelType, ClusteringMethod, SimilarityMetric
@@ -51,7 +52,7 @@ class TestCLIPService:
     @pytest.fixture
     def test_images_and_paths(self, temp_dir: Path) -> list[tuple[Image.Image, Path]]:
         """Create test images and paths."""
-        images_and_paths = []
+        images_and_paths: list[tuple[Image.Image, Path]] = []
         for i in range(4):
             image = Image.new(
                 "RGB", (224, 224), color=["red", "green", "blue", "yellow"][i]
@@ -61,9 +62,9 @@ class TestCLIPService:
         return images_and_paths
 
     @pytest.fixture
-    def mock_embeddings(self, temp_dir: Path) -> list:
+    def mock_embeddings(self, temp_dir: Path) -> list[Any]:
         """Create mock embeddings for testing."""
-        embeddings = []
+        embeddings: list[Any] = []
         for i, embedding_data in enumerate(MOCK_EMBEDDINGS["similar_group"]):
             path = temp_dir / f"test_{i}.jpg"
             # Normalize the embedding
@@ -210,7 +211,7 @@ class TestCLIPService:
         assert similarity.path1 == embedding1.path
         assert similarity.path2 == embedding2.path
         assert 0.0 <= similarity.similarity_score <= 1.0
-        assert similarity.metric == "cosine"  # type: ignore[comparison-overlap]
+        assert similarity.metric == SimilarityMetric.COSINE
 
     def test_similarity_calculation_different_metrics(
         self, config: CuLoRAConfig, mock_embeddings: list
@@ -224,7 +225,7 @@ class TestCLIPService:
             service = CLIPService(config)
 
             similarity = service.calculate_similarity(embedding1, embedding2)
-            assert similarity.metric == metric.value  # type: ignore[comparison-overlap]
+            assert similarity.metric == metric
             assert 0.0 <= similarity.similarity_score <= 1.0
 
     def test_diversity_analysis(
@@ -261,8 +262,8 @@ class TestCLIPService:
         result = service.cluster_embeddings(mock_embeddings)
 
         # Verify clustering result
-        assert result.method == "kmeans"  # type: ignore[comparison-overlap]
-        assert result.num_clusters > 0  # type: ignore[unreachable]
+        assert result.method == ClusteringMethod.KMEANS
+        assert result.num_clusters > 0
         assert len(result.clusters) == result.num_clusters
         assert result.silhouette_score is not None
         assert result.inertia is not None  # K-means specific
@@ -284,9 +285,9 @@ class TestCLIPService:
         result = service.cluster_embeddings(mock_embeddings)
 
         # Verify clustering result
-        assert result.method == "hierarchical"  # type: ignore[comparison-overlap]
+        assert result.method == ClusteringMethod.HIERARCHICAL
         # Not applicable for hierarchical clustering
-        assert result.inertia is None  # type: ignore[unreachable]
+        assert result.inertia is None
 
     @patch("sklearn.cluster.DBSCAN")
     def test_dbscan_clustering(
@@ -304,9 +305,9 @@ class TestCLIPService:
         result = service.cluster_embeddings(mock_embeddings)
 
         # Verify clustering result (noise points filtered out)
-        assert result.method == "dbscan"  # type: ignore[comparison-overlap]
+        assert result.method == ClusteringMethod.DBSCAN
         # Not applicable for DBSCAN clustering
-        assert result.inertia is None  # type: ignore[unreachable]
+        assert result.inertia is None
 
     def test_clustering_insufficient_embeddings(
         self, clip_service: CLIPService, mock_embeddings: list

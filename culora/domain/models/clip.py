@@ -34,7 +34,7 @@ class EmbeddingSimilarity(BaseModel):
     distance: float = Field(description="Distance metric value")
     metric: SimilarityMetric = Field(description="Similarity calculation method")
 
-    model_config = ConfigDict(json_encoders={Path: str}, use_enum_values=True)
+    model_config = ConfigDict(json_encoders={Path: str})
 
 
 class SemanticCluster(BaseModel):
@@ -112,7 +112,7 @@ class DiversityAnalysis(BaseModel):
         description="Most diverse image pairs"
     )
 
-    model_config = ConfigDict(json_encoders={Path: str}, use_enum_values=True)
+    model_config = ConfigDict(json_encoders={Path: str})
 
 
 class ClusteringResult(BaseModel):
@@ -132,7 +132,7 @@ class ClusteringResult(BaseModel):
     )
     processing_time: float = Field(description="Time taken for clustering")
 
-    model_config = ConfigDict(use_enum_values=True)
+    model_config = ConfigDict()
 
 
 class SemanticSelectionCriteria(BaseModel):

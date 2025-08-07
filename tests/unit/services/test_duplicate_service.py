@@ -292,8 +292,8 @@ class TestDuplicateModels:
         representative = group.select_representative(quality_scores)
 
         assert representative == paths[1]  # Highest quality
+        assert group.representative_path == paths[1]
         assert group.has_representative
-        assert group.representative_path == paths[1]  # type: ignore[unreachable]
 
     def test_duplicate_analysis_computed_fields(self) -> None:
         """Test DuplicateAnalysis computed fields."""

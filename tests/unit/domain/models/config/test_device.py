@@ -32,8 +32,7 @@ class TestDeviceConfig:
 
     def test_device_config_from_dict(self) -> None:
         """Test DeviceConfig creation from dictionary."""
-        config_dict = {"preferred_device": "cuda"}
-        config = DeviceConfig(**config_dict)  # type: ignore[arg-type]
+        config = DeviceConfig(preferred_device=DeviceType.CUDA)
         assert config.preferred_device == DeviceType.CUDA
 
     def test_device_config_model_dump(self) -> None:
