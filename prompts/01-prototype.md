@@ -6,7 +6,7 @@
 
 - ~~**US1.1:** As a developer, I need a modern Python project setup (Poetry, Black, Ruff, Pylance, Pytest) so that contributing is fast and code quality is always enforced.~~
 - ~~**US1.2:** As a developer, I want a clear `src/` directory layout with distinct modules (`cli`, `analysis`, `utils`) so the codebase is maintainable.~~
-- **US1.3:** As a user, I want `culora --help` to display clear subcommands and usage info for `analyze` and `select`.
+- ~~**US1.3:** As a user, I want `culora --help` to display clear subcommands and usage info for `analyze` and `select`.~~
 - **US1.4:** As a user, I want all CLI output styled and readable (via Rich), so every interaction is visually clear.
 - **US1.5:** As a developer, I need a cross-platform app data directory for analysis caches.
 - **US1.6:** As a developer, I want basic Pytest tests for the CLI so I know the baseline is solid.
