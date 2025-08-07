@@ -44,13 +44,6 @@ class MockContext:
         self._patches.append(patch.dict("sys.modules", {"torch": mock_torch}))
         return self
 
-    def mock_structlog(self) -> "MockContext":
-        """Mock structlog logger."""
-        mock_logger = Mock()
-        self._mocks["structlog_logger"] = mock_logger
-        self._patches.append(patch("structlog.get_logger", return_value=mock_logger))
-        return self
-
     def __enter__(self) -> "MockContext":
         """Enter context and start all patches."""
         for patch_obj in self._patches:

@@ -126,9 +126,9 @@ class FaceAnalysisConfig(BaseModel):
         }
 
         if v not in known_models:
-            # Allow custom model names but show warning in logs
-            # This validator doesn't have access to logger, so we just accept it
-            pass
+            raise ValueError(
+                f"Invalid model name '{v}'. Must be one of: {', '.join(known_models)}"
+            )
 
         return v
 

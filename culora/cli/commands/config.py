@@ -147,8 +147,9 @@ def set_config_value(
 
     except InvalidConfigError as e:
         console.error(f"Invalid configuration value: {e}")
-        if hasattr(e, "details") and e.details:
-            console.error(f"Validation errors: {e.details}")
+        # Show context if available
+        if hasattr(e, "context") and e.context:
+            console.error(f"Context: {e.context}")
         raise typer.Exit(1) from e
     except ConfigError as e:
         console.error(f"Configuration error: {e}")
@@ -178,7 +179,6 @@ def validate_config(
 
         # Show basic info about the configuration
         console.info(f"Device: {config.device.preferred_device}")
-        console.info(f"Log Level: {config.logging.log_level}")
 
         # Show config file location if loaded from file
         loaded_file = config_service.get_config_file()

@@ -26,7 +26,6 @@ from .config import (
     DeviceConfig,
     FaceAnalysisConfig,
     ImageConfig,
-    LoggingConfig,
     PoseConfig,
     QualityConfig,
 )
@@ -106,7 +105,6 @@ __all__ = [
     "ImageLoadResult",
     "ImageMetadata",
     "ImageQualityResult",
-    "LoggingConfig",
     "Memory",
     "PoseAnalysis",
     "PoseAnalysisResult",

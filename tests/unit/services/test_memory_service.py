@@ -1,7 +1,5 @@
 """Tests for MemoryService."""
 
-from unittest.mock import Mock
-
 import pytest
 
 from culora.domain.models.memory import Memory
@@ -11,11 +9,10 @@ from culora.services.memory_service import MemoryService
 class TestMemoryService:
     """Test cases for MemoryService."""
 
-    def test_memory_service_initialization(self, mock_logger: Mock) -> None:
+    def test_memory_service_initialization(self) -> None:
         """Test MemoryService initialization."""
-        service = MemoryService(mock_logger)
+        service = MemoryService()
 
-        assert service.logger == mock_logger
         assert isinstance(service._model_estimates, dict)
         assert len(service._model_estimates) > 0
 
@@ -44,29 +41,6 @@ class TestMemoryService:
         """Test memory estimation for unknown models."""
         result = memory_service.estimate_memory_usage("unknown_model")
         assert result is None
-
-    def test_estimate_memory_usage_logging_known(
-        self, memory_service: MemoryService, mock_logger: Mock
-    ) -> None:
-        """Test logging for known model estimation."""
-        memory_service.estimate_memory_usage("insightface")
-
-        mock_logger.debug.assert_called_once_with(
-            "Estimated model memory usage",
-            model_name="insightface",
-            estimated_mb=500,
-        )
-
-    def test_estimate_memory_usage_logging_unknown(
-        self, memory_service: MemoryService, mock_logger: Mock
-    ) -> None:
-        """Test logging for unknown model estimation."""
-        memory_service.estimate_memory_usage("unknown_model")
-
-        mock_logger.debug.assert_called_once_with(
-            "Unknown model for memory estimation",
-            model_name="unknown_model",
-        )
 
     def test_check_memory_availability_sufficient(
         self, memory_service: MemoryService, limited_memory: Memory
@@ -131,9 +105,7 @@ class TestMemoryService:
         assert summary["is_limited"] is True
         assert summary["has_sufficient"] is False  # 1024 < 2048
 
-    def test_create_memory_with_values(
-        self, memory_service: MemoryService, mock_logger: Mock
-    ) -> None:
+    def test_create_memory_with_values(self, memory_service: MemoryService) -> None:
         """Test creating memory with specific values."""
         memory = memory_service.create_memory(total_mb=8192, available_mb=4096)
 
@@ -141,15 +113,7 @@ class TestMemoryService:
         assert memory.total_mb == 8192
         assert memory.available_mb == 4096
 
-        mock_logger.debug.assert_called_once_with(
-            "Creating memory object",
-            total_mb=8192,
-            available_mb=4096,
-        )
-
-    def test_create_memory_unlimited(
-        self, memory_service: MemoryService, mock_logger: Mock
-    ) -> None:
+    def test_create_memory_unlimited(self, memory_service: MemoryService) -> None:
         """Test creating unlimited memory."""
         memory = memory_service.create_memory()
 
@@ -157,12 +121,6 @@ class TestMemoryService:
         assert memory.total_mb is None
         assert memory.available_mb is None
         assert not memory.is_limited
-
-        mock_logger.debug.assert_called_once_with(
-            "Creating memory object",
-            total_mb=None,
-            available_mb=None,
-        )
 
     def test_create_memory_partial_values(self, memory_service: MemoryService) -> None:
         """Test creating memory with partial values."""

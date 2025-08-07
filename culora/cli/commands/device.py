@@ -5,7 +5,7 @@ import typer
 from culora.cli.display.console import console
 from culora.cli.display.tables import display_device_table, display_memory_table
 from culora.core import DeviceError
-from culora.services import get_device_service, get_memory_service
+from culora.services import get_device_service
 
 # Create device subcommand app
 device_app = typer.Typer(
@@ -79,7 +79,6 @@ def memory_info() -> None:
     """Show memory information for the selected device."""
     try:
         device_service = get_device_service()
-        memory_service = get_memory_service()
 
         # Get selected device
         selected_device = device_service.get_selected_device()
@@ -91,13 +90,8 @@ def memory_info() -> None:
         else:
             console.warning("No memory information available for this device")
 
-        # Show additional memory details if available
-        if hasattr(memory_service, "get_memory_details"):
-            details = memory_service.get_memory_details(selected_device)
-            if details:
-                console.info("Additional memory details:")
-                for key, value in details.items():
-                    console.key_value(key, value)
+        # Additional memory details functionality not yet implemented
+        # Could be added to MemoryService in the future if needed
 
     except DeviceError as e:
         console.error(f"Device or memory error: {e}")

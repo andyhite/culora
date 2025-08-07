@@ -19,14 +19,11 @@ from ...mocks.mock_torch import MockContext
 class TestDeviceService:
     """Test cases for DeviceService."""
 
-    def test_device_service_initialization(
-        self, default_config: CuLoRAConfig, mock_logger: Mock
-    ) -> None:
+    def test_device_service_initialization(self, default_config: CuLoRAConfig) -> None:
         """Test DeviceService initialization."""
-        service = DeviceService(default_config, mock_logger)
+        service = DeviceService(default_config)
 
         assert service.config == default_config
-        assert service.logger == mock_logger
         assert service._selected_device is None
         assert service._all_devices is None
         assert service._torch_available is None
@@ -298,7 +295,7 @@ class TestDeviceService:
 
     @patch("culora.services.device_service.DeviceService._detect_all_devices")
     def test_select_optimal_device_preferred_available(
-        self, mock_detect: Mock, cuda_config: CuLoRAConfig, mock_logger: Mock
+        self, mock_detect: Mock, cuda_config: CuLoRAConfig
     ) -> None:
         """Test device selection with preferred device available."""
         # Create devices
@@ -312,14 +309,14 @@ class TestDeviceService:
         mock_devices = [cpu_device, cuda_device]
         mock_detect.return_value = mock_devices
 
-        service = DeviceService(cuda_config, mock_logger)
+        service = DeviceService(cuda_config)
         result = service._select_optimal_device(mock_devices)
 
         assert result == cuda_device
 
     @patch("culora.services.device_service.DeviceService._get_optimal_device")
     def test_select_optimal_device_preferred_not_available(
-        self, mock_get_optimal: Mock, cuda_config: CuLoRAConfig, mock_logger: Mock
+        self, mock_get_optimal: Mock, cuda_config: CuLoRAConfig
     ) -> None:
         """Test device selection when preferred device not available."""
         # Create devices with CUDA unavailable
@@ -330,7 +327,7 @@ class TestDeviceService:
         mock_devices = [cpu_device, cuda_device]
         mock_get_optimal.return_value = cpu_device
 
-        service = DeviceService(cuda_config, mock_logger)
+        service = DeviceService(cuda_config)
         result = service._select_optimal_device(mock_devices)
 
         assert result == cpu_device

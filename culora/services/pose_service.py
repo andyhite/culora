@@ -2,16 +2,9 @@
 
 import contextlib
 import io
-import os
 import time
-import warnings
 from pathlib import Path
 from typing import Any
-
-# Suppress TensorFlow and MediaPipe verbose output at import time
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-os.environ["GLOG_MINLOGLEVEL"] = "3"
-os.environ["GLOG_LOGTOSTDERR"] = "0"
 
 import mediapipe as mp
 import numpy as np
@@ -43,7 +36,6 @@ from culora.domain.models.pose import (
     PoseSimilarity,
     PoseVector,
 )
-from culora.utils.logging import get_logger
 
 
 class PoseServiceError(CuLoRAError):
@@ -77,34 +69,18 @@ class PoseService:
         """Initialize pose service with configuration."""
         self.config = config
         self.pose_config = config.pose
-        self.logger = get_logger(__name__)
 
-        # MediaPipe pose estimation
-        self._pose_estimator: mp.solutions.pose.Pose | None = None
-        self._mp_pose = mp.solutions.pose
-        self._mp_drawing = mp.solutions.drawing_utils
+        # MediaPipe pose estimation (using Any to avoid typing issues)
+        self._pose_estimator: Any | None = None
+        self._mp_pose: Any = getattr(mp.solutions, "pose", None)
+        self._mp_drawing: Any = getattr(mp.solutions, "drawing_utils", None)
 
         # Pose analysis cache
         self._pose_cache: dict[str, PoseAnalysis] = {}
 
-        # Suppress TensorFlow and MediaPipe verbose output
-        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"  # Only show errors
-        os.environ["GLOG_MINLOGLEVEL"] = "3"  # Only show errors
-        os.environ["GLOG_LOGTOSTDERR"] = "0"  # Don't log to stderr
-        warnings.filterwarnings("ignore", category=UserWarning, module="mediapipe")
-        warnings.filterwarnings("ignore", category=FutureWarning, module="mediapipe")
-
-        self.logger.info("PoseService initialized")
-
     def _get_pose_estimator(self) -> Any:
         """Get or create MediaPipe pose estimator."""
         if self._pose_estimator is None:
-            self.logger.debug("Creating MediaPipe pose estimator")
-
-            # Suppress MediaPipe verbose output
-            os.environ["GLOG_MINLOGLEVEL"] = "2"  # Suppress INFO and WARNING
-            warnings.filterwarnings("ignore", category=UserWarning, module="mediapipe")
-
             if self._mp_pose is None:
                 raise ImportError("mediapipe.solutions.pose is not available")
 
@@ -285,8 +261,7 @@ class PoseService:
                 confidence=confidence,
             )
 
-        except Exception as e:
-            self.logger.warning(f"Pose classification failed: {e}")
+        except Exception:
             return PoseClassification(
                 category=PoseCategory.UNKNOWN,
                 orientation=PoseOrientation.UNKNOWN,
@@ -685,7 +660,6 @@ class PoseService:
             )
 
         except Exception as e:
-            self.logger.error(f"Pose analysis failed for {image_path}: {e}")
             return PoseAnalysisResult(
                 path=image_path,
                 success=False,
@@ -700,10 +674,6 @@ class PoseService:
         """Analyze poses in a batch of images."""
         start_time = time.time()
         results = []
-
-        self.logger.info(
-            f"Starting batch pose analysis of {len(images_and_paths)} images"
-        )
 
         for image, path in images_and_paths:
             result = self.analyze_pose(image, path)
@@ -907,7 +877,7 @@ class PoseService:
 
         # Perform clustering
         try:
-            clustering = KMeans(n_clusters=optimal_k, random_state=42, n_init=10)
+            clustering = KMeans(n_clusters=optimal_k, random_state=42, n_init="auto")
             cluster_labels = clustering.fit_predict(vector_array)
         except Exception as e:
             raise PoseClusteringError(f"Clustering failed: {e}") from e
@@ -1001,7 +971,7 @@ class PoseService:
 
         for k in k_range:
             try:
-                kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+                kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
                 kmeans.fit(vectors)
                 inertias.append(kmeans.inertia_)
             except Exception:

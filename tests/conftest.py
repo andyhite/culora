@@ -8,15 +8,13 @@ from unittest.mock import Mock
 
 import pytest
 
-from culora.domain.enums import LogLevel
 from culora.domain.enums.device_types import DeviceType
-from culora.domain.models import CuLoRAConfig, DeviceConfig, LoggingConfig
+from culora.domain.models import CuLoRAConfig, DeviceConfig
 from culora.domain.models.device import Device
 from culora.domain.models.memory import Memory
 from culora.services.config_service import ConfigService
 from culora.services.device_service import DeviceService
 from culora.services.memory_service import MemoryService
-from culora.utils.logging import LoggingService
 
 # ============================================================================
 # Configuration Fixtures
@@ -30,20 +28,10 @@ def default_config() -> CuLoRAConfig:
 
 
 @pytest.fixture
-def debug_config() -> CuLoRAConfig:
-    """Create a CuLoRA configuration with debug logging."""
-    return CuLoRAConfig(
-        device=DeviceConfig(preferred_device=DeviceType.CPU),
-        logging=LoggingConfig(log_level=LogLevel.DEBUG),
-    )
-
-
-@pytest.fixture
 def cuda_config() -> CuLoRAConfig:
     """Create a CuLoRA configuration with CUDA device preference."""
     return CuLoRAConfig(
         device=DeviceConfig(preferred_device=DeviceType.CUDA),
-        logging=LoggingConfig(log_level=LogLevel.INFO),
     )
 
 
@@ -52,25 +40,12 @@ def mps_config() -> CuLoRAConfig:
     """Create a CuLoRA configuration with MPS device preference."""
     return CuLoRAConfig(
         device=DeviceConfig(preferred_device=DeviceType.MPS),
-        logging=LoggingConfig(log_level=LogLevel.INFO),
     )
 
 
 # ============================================================================
 # Mock Fixtures
 # ============================================================================
-
-
-@pytest.fixture
-def mock_logger() -> Mock:
-    """Create a mock LoggingService instance."""
-    return Mock(spec=LoggingService)
-
-
-@pytest.fixture
-def mock_structlog_logger() -> Mock:
-    """Create a mock structlog logger."""
-    return Mock()
 
 
 @pytest.fixture
@@ -166,24 +141,15 @@ def config_service() -> ConfigService:
 
 
 @pytest.fixture
-def device_service(default_config: CuLoRAConfig, mock_logger: Mock) -> DeviceService:
+def device_service(default_config: CuLoRAConfig) -> DeviceService:
     """Create a DeviceService instance."""
-    return DeviceService(default_config, mock_logger)
+    return DeviceService(default_config)
 
 
 @pytest.fixture
-def memory_service(mock_logger: Mock) -> MemoryService:
+def memory_service() -> MemoryService:
     """Create a MemoryService instance."""
-    return MemoryService(mock_logger)
-
-
-@pytest.fixture
-def logging_service(mock_structlog_logger: Mock) -> LoggingService:
-    """Create a LoggingService instance."""
-    from unittest.mock import patch
-
-    with patch("structlog.get_logger", return_value=mock_structlog_logger):
-        return LoggingService("test_logger")
+    return MemoryService()
 
 
 # ============================================================================
@@ -204,7 +170,6 @@ def config_file(temp_dir: Path) -> Path:
     config_path = temp_dir / "test_config.json"
     config_data = {
         "device": {"preferred_device": "cpu"},
-        "logging": {"log_level": "info"},
     }
 
     import json
@@ -213,14 +178,6 @@ def config_file(temp_dir: Path) -> Path:
         json.dump(config_data, f, indent=2)
 
     return config_path
-
-
-@pytest.fixture
-def log_dir(temp_dir: Path) -> Path:
-    """Create a temporary log directory."""
-    log_path = temp_dir / "logs"
-    log_path.mkdir(exist_ok=True)
-    return log_path
 
 
 # ============================================================================
@@ -233,7 +190,6 @@ def sample_config_dict() -> dict[str, Any]:
     """Create sample configuration dictionary."""
     return {
         "device": {"preferred_device": "cuda"},
-        "logging": {"log_level": "debug"},
     }
 
 
@@ -242,7 +198,6 @@ def invalid_config_dict() -> dict[str, Any]:
     """Create invalid configuration dictionary."""
     return {
         "device": {"preferred_device": "invalid_device"},
-        "logging": {"log_level": "invalid_level"},
     }
 
 
@@ -251,7 +206,6 @@ def environment_vars() -> dict[str, str]:
     """Create sample environment variables."""
     return {
         "CULORA_DEVICE_PREFERRED": "mps",
-        "CULORA_LOG_LEVEL": "warning",
     }
 
 

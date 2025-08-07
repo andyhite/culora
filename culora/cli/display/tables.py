@@ -26,11 +26,6 @@ def display_config_table(
     # Device configuration
     table.add_row("Device", "Preferred Device", str(config.device.preferred_device))
 
-    # Logging configuration
-    table.add_row("Logging", "Log Level", str(config.logging.log_level))
-    if hasattr(config.logging, "log_file") and config.logging.log_file:
-        table.add_row("", "Log File", str(config.logging.log_file))
-
     console.print(table)
 
     # Display sources if provided

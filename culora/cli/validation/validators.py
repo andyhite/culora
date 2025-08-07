@@ -168,7 +168,6 @@ def validate_config_key(value: str) -> str:
     # Check for valid key patterns
     valid_prefixes = [
         "device.",
-        "logging.",
         "quality_assessment.",
         "selection.",
         "export.",

@@ -196,15 +196,11 @@ class TestDeviceCommands:
 
         with (
             patch("culora.cli.commands.device.get_device_service") as mock_get_service,
-            patch("culora.cli.commands.device.get_memory_service") as mock_get_memory,
             patch("culora.cli.commands.device.display_memory_table") as mock_display,
         ):
             mock_device_service = MagicMock()
             mock_device_service.get_selected_device.return_value = selected_device
             mock_get_service.return_value = mock_device_service
-
-            mock_memory_service = MagicMock()
-            mock_get_memory.return_value = mock_memory_service
 
             result = runner.invoke(device_app, ["memory"])
 
@@ -224,16 +220,11 @@ class TestDeviceCommands:
 
         with (
             patch("culora.cli.commands.device.get_device_service") as mock_get_service,
-            patch("culora.cli.commands.device.get_memory_service") as mock_get_memory,
             patch("culora.cli.commands.device.display_memory_table") as mock_display,
         ):
             mock_device_service = MagicMock()
             mock_device_service.get_selected_device.return_value = device_basic_memory
             mock_get_service.return_value = mock_device_service
-
-            mock_memory_service = MagicMock()
-            mock_memory_service.get_memory_details.return_value = {}
-            mock_get_memory.return_value = mock_memory_service
 
             result = runner.invoke(device_app, ["memory"])
 
@@ -250,24 +241,17 @@ class TestDeviceCommands:
 
         with (
             patch("culora.cli.commands.device.get_device_service") as mock_get_service,
-            patch("culora.cli.commands.device.get_memory_service") as mock_get_memory,
             patch("culora.cli.commands.device.display_memory_table"),
         ):
             mock_device_service = MagicMock()
             mock_device_service.get_selected_device.return_value = selected_device
             mock_get_service.return_value = mock_device_service
 
-            mock_memory_service = MagicMock()
-            mock_memory_service.get_memory_details.return_value = {
-                "driver_version": "12.0",
-                "compute_capability": "8.6",
-            }
-            mock_get_memory.return_value = mock_memory_service
-
             result = runner.invoke(device_app, ["memory"])
 
             assert result.exit_code == 0
-            assert "Additional memory details" in result.stdout
+            # Additional memory details functionality was removed
+            assert "Memory Information" in result.stdout
 
     def test_device_memory_device_error(self, runner: CliRunner) -> None:
         """Test device memory command with device error."""

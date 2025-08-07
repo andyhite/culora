@@ -39,6 +39,7 @@ class TestDevice:
         memory = Memory(total_mb=8192, available_mb=4096)
         device = Device(device_type=DeviceType.CUDA, name="CUDA:0", memory=memory)
         assert device.memory == memory
+        assert device.memory is not None
         assert device.memory.total_mb == 8192
         assert device.memory.available_mb == 4096
 

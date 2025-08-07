@@ -20,9 +20,6 @@ from culora.domain.models.quality import (
     QualityScore,
     TechnicalQualityMetrics,
 )
-from culora.utils import get_logger
-
-logger = get_logger(__name__)
 
 
 class QualityServiceError(CuLoRAError):
@@ -57,7 +54,6 @@ class QualityService:
         """
         self.config = config
         self.quality_config = config.quality
-        logger.info("Quality service initialized")
 
     def analyze_image(
         self,
@@ -107,13 +103,11 @@ class QualityService:
 
         except Exception as e:
             duration = time.time() - start_time
-            error_msg = f"Quality analysis failed for {path}: {e}"
-            logger.warning(error_msg)
 
             return ImageQualityResult(
                 path=path,
                 success=False,
-                error=error_msg,
+                error=f"Quality analysis failed for {path}: {e}",
                 error_code="QUALITY_ANALYSIS_FAILED",
                 analysis_duration=duration,
             )
@@ -132,8 +126,6 @@ class QualityService:
         start_time = time.time()
         results: list[ImageQualityResult] = []
 
-        logger.info(f"Starting quality analysis for {len(images_and_paths)} images")
-
         # Analyze individual images
         for image, path in images_and_paths:
             result = self.analyze_image(image, path)
@@ -149,12 +141,6 @@ class QualityService:
 
         # Add percentile information to individual results
         self._add_percentile_rankings(successful_results, batch_result)
-
-        logger.info(
-            f"Quality analysis completed: {batch_result.successful_analyses}/"
-            f"{len(results)} successful, "
-            f"mean score: {batch_result.mean_quality_score:.3f}"
-        )
 
         return batch_result
 
@@ -671,15 +657,13 @@ class QualityService:
 
         except Exception as e:
             calculation_time = time.time() - start_time
-            error_msg = f"BRISQUE calculation failed: {e}"
-            logger.warning(error_msg)
 
             return PerceptualQualityMetrics(
                 brisque_score=float("inf"),
                 brisque_normalized=0.0,
                 brisque_calculation_time=calculation_time,
                 brisque_success=False,
-                brisque_error=error_msg,
+                brisque_error=f"BRISQUE calculation failed: {e}",
             )
 
     def _pil_to_tensor(self, image: Image.Image) -> torch.Tensor:

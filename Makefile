@@ -12,7 +12,7 @@ help:
 	@echo "Code Quality:"
 	@echo "  format      Format code with Black and sort imports with isort"
 	@echo "  lint        Run Ruff linter"
-	@echo "  typecheck   Run mypy type checking"
+	@echo "  typecheck   Run Pyright type checking"
 	@echo "  check       Run all quality checks (format, lint, typecheck)"
 	@echo ""
 	@echo "Testing:"
@@ -47,8 +47,8 @@ lint:
 
 # Type checking
 typecheck:
-	@echo "Running mypy type checking..."
-	@poetry run mypy ./culora ./tests
+	@echo "Running Pyright type checking..."
+	@poetry run pyright ./culora ./tests
 
 # Combined quality checks
 check: format lint typecheck
@@ -69,6 +69,7 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".mypy_cache" -exec rm -rf {} + 2>/dev/null || true
+	@find . -type d -name ".pyright_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".ruff_cache" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name "htmlcov" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete 2>/dev/null || true

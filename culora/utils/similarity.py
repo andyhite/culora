@@ -1,9 +1,6 @@
 """Utilities for calculating face embedding similarities."""
 
 import numpy as np
-import structlog
-
-logger = structlog.get_logger(__name__)
 
 
 def cosine_similarity(embedding1: np.ndarray, embedding2: np.ndarray) -> float:
@@ -40,9 +37,6 @@ def cosine_similarity(embedding1: np.ndarray, embedding2: np.ndarray) -> float:
 
     # Handle zero magnitude (shouldn't happen with valid face embeddings)
     if magnitude1 == 0.0 or magnitude2 == 0.0:
-        logger.warning(
-            "Zero magnitude embedding detected", mag1=magnitude1, mag2=magnitude2
-        )
         return 0.0
 
     # Calculate cosine similarity
@@ -86,13 +80,6 @@ def average_embeddings(embeddings: list[np.ndarray]) -> np.ndarray:
     # Calculate mean across all embeddings
     stacked = np.stack(embeddings)
     averaged = np.mean(stacked, axis=0)
-
-    logger.debug(
-        "Averaged embeddings",
-        count=len(embeddings),
-        original_shape=first_shape,
-        result_shape=averaged.shape,
-    )
 
     result: np.ndarray = averaged.copy().astype(np.float32)
     return result
@@ -138,14 +125,6 @@ def similarity_to_references(
         result = float(np.max(similarities))
     elif method == "min":
         result = float(np.min(similarities))
-
-    logger.debug(
-        "Calculated similarity to references",
-        method=method,
-        reference_count=len(reference_embeddings),
-        similarities=similarities,
-        result=result,
-    )
 
     return result
 

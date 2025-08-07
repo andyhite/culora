@@ -3,19 +3,13 @@
 from typing import Any
 
 from culora.domain.models.memory import Memory
-from culora.utils.logging import LoggingService
 
 
 class MemoryService:
     """Service for managing memory estimation and availability checks."""
 
-    def __init__(self, logger: LoggingService) -> None:
-        """Initialize memory service.
-
-        Args:
-            logger: Structured logger instance
-        """
-        self.logger = logger
+    def __init__(self) -> None:
+        """Initialize memory service."""
 
         # Basic estimates for common models (can be expanded)
         self._model_estimates = {
@@ -36,18 +30,6 @@ class MemoryService:
             Estimated memory usage in MB, or None if unknown
         """
         estimate = self._model_estimates.get(model_name.lower())
-
-        if estimate:
-            self.logger.debug(
-                "Estimated model memory usage",
-                model_name=model_name,
-                estimated_mb=estimate,
-            )
-        else:
-            self.logger.debug(
-                "Unknown model for memory estimation",
-                model_name=model_name,
-            )
 
         return estimate
 
@@ -92,12 +74,6 @@ class MemoryService:
         Returns:
             Memory object with specified parameters
         """
-        self.logger.debug(
-            "Creating memory object",
-            total_mb=total_mb,
-            available_mb=available_mb,
-        )
-
         return Memory(total_mb=total_mb, available_mb=available_mb)
 
 
@@ -109,9 +85,6 @@ def get_memory_service() -> MemoryService:
     """Get the global memory service instance."""
     global _memory_service
     if _memory_service is None:
-        from culora.utils import get_logger
-
-        logger = get_logger(__name__)
-        _memory_service = MemoryService(logger)
+        _memory_service = MemoryService()
 
     return _memory_service

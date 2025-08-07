@@ -74,7 +74,6 @@ class TestCLIIntegration:
             with open(export_file) as f:
                 exported_data = json.load(f)
             assert exported_data["device"]["preferred_device"] == "cuda"
-            assert exported_data["logging"]["log_level"] == "info"
 
     def test_config_validation_integration(self, runner: CliRunner) -> None:
         """Test config validation with valid and invalid files."""
@@ -85,8 +84,6 @@ class TestCLIIntegration:
                 """
 device:
   preferred_device: cpu
-logging:
-  log_level: debug
 """
             )
 
@@ -200,32 +197,6 @@ logging:
         result = runner.invoke(app, ["-v"])
         assert result.exit_code == 0
         assert "CuLoRA v0.1.0" in result.stdout
-
-    def test_config_type_conversion_integration(self, runner: CliRunner) -> None:
-        """Test configuration type conversion in real scenarios."""
-        with TempFileHelper.create_temp_dir() as temp_dir:
-            config_file = temp_dir / "type_test_config.yaml"
-
-            # Test boolean conversion
-            result = runner.invoke(
-                app,
-                [
-                    "config",
-                    "set",
-                    "logging.log_level",
-                    "debug",
-                    "--config",
-                    str(config_file),
-                ],
-            )
-            assert result.exit_code == 0
-
-            result = runner.invoke(
-                app,
-                ["config", "get", "logging.log_level", "--config", str(config_file)],
-            )
-            assert result.exit_code == 0
-            assert "LogLevel.DEBUG" in result.stdout
 
     def test_config_file_formats_integration(self, runner: CliRunner) -> None:
         """Test different config file formats."""

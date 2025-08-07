@@ -1,6 +1,5 @@
 """Multi-criteria selection service for intelligent dataset curation."""
 
-import logging
 import time
 from collections import Counter
 from typing import Any
@@ -30,8 +29,6 @@ from culora.services.clip_service import get_clip_service
 from culora.services.duplicate_service import get_duplicate_service
 from culora.services.pose_service import get_pose_service
 from culora.services.quality_service import get_quality_service
-
-logger = logging.getLogger(__name__)
 
 
 class SelectionService:
@@ -69,11 +66,6 @@ class SelectionService:
         stage_results: list[SelectionStageResult] = []
 
         try:
-            logger.info(
-                f"Starting multi-criteria selection: {len(candidates)} candidates, "
-                f"target {config.target_count}"
-            )
-
             # Generate constraints if not provided
             if constraints is None:
                 constraints = self._generate_constraints(candidates)
@@ -83,11 +75,6 @@ class SelectionService:
 
             # Calculate effective target count
             effective_target = constraints.calculate_effective_target(config)
-            if effective_target != config.target_count:
-                logger.warning(
-                    f"Adjusted target count from {config.target_count} to {effective_target} "
-                    f"due to constraints"
-                )
 
             # Create selection criteria
             criteria = self._create_selection_criteria(config, effective_target)
@@ -169,15 +156,9 @@ class SelectionService:
                 quality_improvement_ratio=quality_improvement,
             )
 
-            logger.info(
-                f"Selection completed: {len(selected_candidates)}/{effective_target} selected "
-                f"in {total_duration:.2f}s"
-            )
-
             return result
 
         except Exception as e:
-            logger.error(f"Selection failed: {e}")
             if isinstance(
                 e,
                 SelectionError
@@ -223,25 +204,6 @@ class SelectionService:
         if max_possible == 0:
             raise SelectionInsufficientDataError(
                 "No images can be selected with current configuration"
-            )
-
-        # Validate diversity requirements
-        if (
-            config.diversity_settings.enable_pose_diversity
-            and constraints.pose_analyzed_count < 5
-        ):
-            logger.warning(
-                f"Insufficient pose data for diversity optimization: "
-                f"{constraints.pose_analyzed_count} images analyzed"
-            )
-
-        if (
-            config.diversity_settings.enable_semantic_diversity
-            and constraints.semantic_analyzed_count < 5
-        ):
-            logger.warning(
-                f"Insufficient semantic data for diversity optimization: "
-                f"{constraints.semantic_analyzed_count} images analyzed"
             )
 
     def _create_selection_criteria(
@@ -552,7 +514,7 @@ class SelectionService:
 
         # Perform K-means clustering
         n_clusters = min(target_count, len(pose_vectors) // 2)
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         cluster_labels = kmeans.fit_predict(pose_vectors)
 
         # Select best candidate from each cluster
@@ -606,7 +568,7 @@ class SelectionService:
 
         # Perform K-means clustering on embeddings
         n_clusters = min(target_count, len(embeddings) // 2)
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         cluster_labels = kmeans.fit_predict(embeddings)
 
         # Select best candidate from each cluster

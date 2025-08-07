@@ -218,21 +218,6 @@ class TestConfigCommands:
             assert result.exit_code == 1
             assert "Invalid configuration value" in result.stdout
 
-    def test_set_config_value_type_conversion(self, runner: CliRunner) -> None:
-        """Test config set command with type conversion."""
-        with patch("culora.cli.commands.config.get_config_service") as mock_get_service:
-            mock_service = MagicMock()
-            mock_service.get_config.return_value = MagicMock()
-            mock_service.get_config_file.return_value = Path("/test/config.yaml")
-            mock_get_service.return_value = mock_service
-
-            # Test boolean conversion
-            result = runner.invoke(config_app, ["set", "logging.log_level", "debug"])
-            assert result.exit_code == 0
-            mock_service.set_config_value.assert_called_with(
-                "logging.log_level", "debug", None
-            )
-
     def test_validate_config_success(self, runner: CliRunner) -> None:
         """Test successful config validate command."""
         config = ConfigBuilder().build()

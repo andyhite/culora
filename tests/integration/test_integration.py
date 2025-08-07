@@ -2,11 +2,9 @@
 
 from pathlib import Path
 from typing import Any
-from unittest.mock import Mock
 
 import pytest
 
-from culora.domain.enums import LogLevel
 from culora.domain.enums.device_types import DeviceType
 from culora.domain.models import CuLoRAConfig
 from culora.domain.models.device import Device
@@ -25,17 +23,10 @@ class TestConfigurationIntegration:
     def test_default_configuration_setup(self, default_config: CuLoRAConfig) -> None:
         """Test that default configuration is properly set up."""
         assert default_config.device.preferred_device == DeviceType.CPU
-        assert default_config.logging.log_level == LogLevel.INFO
 
     def test_cuda_configuration_setup(self, cuda_config: CuLoRAConfig) -> None:
         """Test that CUDA configuration is properly set up."""
         assert cuda_config.device.preferred_device == DeviceType.CUDA
-        assert cuda_config.logging.log_level == LogLevel.INFO
-
-    def test_debug_configuration_setup(self, debug_config: CuLoRAConfig) -> None:
-        """Test that debug configuration is properly set up."""
-        assert debug_config.device.preferred_device == DeviceType.CPU
-        assert debug_config.logging.log_level == LogLevel.DEBUG
 
 
 @pytest.mark.integration
@@ -55,14 +46,12 @@ class TestDeviceIntegration:
         self,
         device_service: DeviceService,
         cuda_config: CuLoRAConfig,
-        mock_logger: Mock,
     ) -> None:
         """Test device service integration with fixtures."""
         # Create a new service with CUDA config
-        cuda_service = DeviceService(cuda_config, mock_logger)
+        cuda_service = DeviceService(cuda_config)
 
         assert cuda_service.config.device.preferred_device == DeviceType.CUDA
-        assert cuda_service.logger == mock_logger
 
 
 @pytest.mark.integration
@@ -71,30 +60,18 @@ class TestBuilderPatterns:
 
     def test_config_builder_basic(self) -> None:
         """Test basic configuration builder usage."""
-        config = (
-            ConfigBuilder()
-            .with_device(DeviceType.CUDA)
-            .with_log_level(LogLevel.DEBUG)
-            .build()
-        )
+        config = ConfigBuilder().with_device(DeviceType.CUDA).build()
 
         assert config.device.preferred_device == DeviceType.CUDA
-        assert config.logging.log_level == LogLevel.DEBUG
 
     def test_config_builder_fluent_interface(self) -> None:
         """Test fluent interface configuration building."""
-        config = (
-            ConfigBuilder()
-            .with_device(DeviceType.MPS)
-            .with_log_level(LogLevel.WARNING)
-            .build()
-        )
+        config = ConfigBuilder().with_device(DeviceType.MPS).build()
 
         AssertionHelpers.assert_config_equal(
             config,
             CuLoRAConfig(
                 device=CuLoRAConfig().device.__class__(preferred_device=DeviceType.MPS),
-                logging=CuLoRAConfig().logging.__class__(log_level=LogLevel.WARNING),
             ),
         )
 
@@ -118,7 +95,7 @@ class TestMockContext:
             pytest.raises(ImportError),
         ):
             # This should raise ImportError if torch is not available
-            import torch  # noqa: F401
+            import torch  # pyright: ignore[reportUnusedImport]  # noqa: F401
 
     def test_mock_context_cuda_devices(self) -> None:
         """Test mock context for CUDA devices."""
@@ -156,7 +133,6 @@ class TestFixtureComposition:
         config = config_service.load_config(config_file=config_file)
 
         assert config.device.preferred_device == DeviceType.CUDA
-        assert config.logging.log_level == LogLevel.DEBUG
 
     def test_memory_fixtures_composition(
         self, unlimited_memory: Memory, limited_memory: Memory, low_memory: Memory
@@ -186,7 +162,6 @@ class TestPerformanceIntegration:
         # This would be a slow test in a real scenario
         large_config = {
             "device": {"preferred_device": "cuda"},
-            "logging": {"log_level": "debug"},
         }
 
         config = config_service.load_config(cli_overrides=large_config)

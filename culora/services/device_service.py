@@ -14,21 +14,18 @@ from culora.domain.enums.device_types import DeviceType
 from culora.domain.models import CuLoRAConfig
 from culora.domain.models.device import Device
 from culora.domain.models.memory import Memory
-from culora.utils.logging import LoggingService
 
 
 class DeviceService:
     """Manages device selection and configuration for AI model execution."""
 
-    def __init__(self, config: CuLoRAConfig, logger: LoggingService) -> None:
+    def __init__(self, config: CuLoRAConfig) -> None:
         """Initialize device service.
 
         Args:
             config: CuLoRA configuration
-            logger: Structured logger instance
         """
         self.config = config
-        self.logger = logger
         self._selected_device: Device | None = None
         self._all_devices: list[Device] | None = None
         self._torch_available: bool | None = None
@@ -42,34 +39,16 @@ class DeviceService:
         Raises:
             DeviceError: If device initialization fails critically
         """
-        self.logger.info("Initializing device management")
-
         try:
             # Detect all available devices
             self._all_devices = self._detect_all_devices()
 
-            # Log device detection results
-            self.logger.info(
-                "Device detection completed",
-                device_count=len(self._all_devices),
-                available_count=len([d for d in self._all_devices if d.is_available]),
-            )
-
             # Select device based on configuration
             self._selected_device = self._select_optimal_device(self._all_devices)
-
-            self.logger.info(
-                "Device selected",
-                device_type=self._selected_device.device_type.value,
-                device_name=self._selected_device.name,
-                has_memory_info=self._selected_device.memory is not None
-                and self._selected_device.memory.is_limited,
-            )
 
             return self._selected_device
 
         except Exception as e:
-            self.logger.error("Device initialization failed", error=str(e))
             raise DeviceError(f"Failed to initialize device management: {e}") from e
 
     def get_selected_device(self) -> Device:
@@ -214,25 +193,10 @@ class DeviceService:
                     and device.is_available
                     and device.has_sufficient_memory
                 ):
-                    self.logger.info(
-                        "Selected preferred device",
-                        device_type=device.device_type.value,
-                        device_name=device.name,
-                    )
                     return device
-
-            self.logger.warning(
-                "Preferred device not available, using automatic selection",
-                preferred_device=preferred_type.value,
-            )
 
         # Fall back to automatic optimal selection
         optimal_device = self._get_optimal_device()
-        self.logger.info(
-            "Selected optimal device",
-            device_type=optimal_device.device_type.value,
-            device_name=optimal_device.name,
-        )
         return optimal_device
 
     def _detect_cpu(self) -> Device:
@@ -352,8 +316,6 @@ class DeviceService:
             devices: List of all devices
             selected_device: Currently selected device
         """
-        self.logger.debug("Displaying device status", device_count=len(devices))
-
         table = Table(
             title="🖥️  Device Status", show_header=True, header_style="bold magenta"
         )
@@ -451,7 +413,6 @@ class DeviceService:
             "available_devices": len([d for d in devices if d.is_available]),
         }
 
-        self.logger.debug("Created device summary", summary=summary)
         return summary
 
     # Backward compatibility method for testing
@@ -472,9 +433,7 @@ def get_device_service() -> DeviceService:
     global _device_service
     if _device_service is None:
         from culora.services import get_config_service
-        from culora.utils import get_logger
 
-        logger = get_logger(__name__)
         config_service = get_config_service()
 
         # Load default config if not already loaded
@@ -483,7 +442,7 @@ def get_device_service() -> DeviceService:
         except Exception:
             config = config_service.load_config()
 
-        _device_service = DeviceService(config, logger)
+        _device_service = DeviceService(config)
         _device_service.initialize()
 
     return _device_service

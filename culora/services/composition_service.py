@@ -29,9 +29,6 @@ from culora.domain.models.composition import (
 )
 from culora.domain.models.config.composition import COMPOSITION_ANALYSIS_PROMPT
 from culora.services.device_service import get_device_service
-from culora.utils import get_logger
-
-logger = get_logger(__name__)
 
 
 class CompositionServiceError(CuLoRAError):
@@ -78,8 +75,6 @@ class CompositionService:
         self._tokenizer: AutoTokenizer | None = None
         self._device: torch.device | None = None
 
-        logger.info("Composition service initialized")
-
     def analyze_image(self, image: Image.Image, path: Path) -> CompositionResult:
         """Analyze composition for a single image.
 
@@ -118,7 +113,6 @@ class CompositionService:
         except Exception as e:
             duration = time.time() - start_time
             error_msg = f"Composition analysis failed for {path}: {e}"
-            logger.warning(error_msg)
 
             return CompositionResult(
                 path=path,
@@ -142,8 +136,6 @@ class CompositionService:
         start_time = time.time()
         results: list[CompositionResult] = []
 
-        logger.info(f"Starting composition analysis for {len(images_and_paths)} images")
-
         # Analyze individual images
         for image, path in images_and_paths:
             result = self.analyze_image(image, path)
@@ -159,21 +151,12 @@ class CompositionService:
             results, successful_results, total_duration
         )
 
-        logger.info(
-            f"Composition analysis completed: {batch_result.successful_analyses}/"
-            f"{len(results)} successful"
-        )
-
         return batch_result
 
     def _ensure_model_loaded(self) -> None:
         """Ensure vision-language model is loaded and ready."""
         if self._model is not None and self._tokenizer is not None:
             return
-
-        logger.info(
-            f"Loading vision-language model: {self.composition_config.model_name}"
-        )
 
         try:
             # Get optimal device
@@ -206,17 +189,12 @@ class CompositionService:
                 self.composition_config.model_name, **model_kwargs
             )
 
-            # Move model to device and set to evaluation mode
-            if (
-                self._model is not None
-                and self._device is not None
-                and hasattr(self._model, "to")
-                and hasattr(self._model, "eval")
-            ):
+            # Move model to device and set to evaluation mode (guaranteed to be non-None at this point)
+            assert self._model is not None
+            assert self._device is not None
+            if hasattr(self._model, "to") and hasattr(self._model, "eval"):
                 self._model.to(self._device)
                 self._model.eval()
-
-            logger.info(f"Model loaded successfully on {self._device}")
 
         except Exception as e:
             raise CompositionServiceError(
@@ -372,13 +350,9 @@ class CompositionService:
                         if isinstance(parsed_json, dict):
                             return parsed_json
                         return None
-                    except json.JSONDecodeError as e:
-                        logger.debug(f"JSON decode error: {e}")
-                        logger.debug(f"Attempted to parse: {json_str}")
+                    except json.JSONDecodeError:
                         return None
 
-        # No matching closing brace found
-        logger.debug("No matching closing brace found in response")
         return None
 
     def _parse_enum_field(self, value: Any, enum_class: type, default: Any) -> Any:

@@ -7,7 +7,6 @@ from .device import DeviceConfig
 from .duplicate import DuplicateConfig
 from .face import FaceAnalysisConfig
 from .image import ImageConfig
-from .logging import LoggingConfig
 from .pose import PoseConfig
 from .quality import QualityConfig
 
@@ -19,7 +18,6 @@ __all__ = [
     "DuplicateConfig",
     "FaceAnalysisConfig",
     "ImageConfig",
-    "LoggingConfig",
     "PoseConfig",
     "QualityConfig",
 ]

@@ -7,7 +7,6 @@ import pytest
 
 from culora.core.exceptions import InvalidConfigError, MissingConfigError
 from culora.domain import CuLoRAConfig
-from culora.domain.enums import LogLevel
 from culora.domain.enums.device_types import DeviceType
 from culora.services.config_service import ConfigService, get_config_service
 
@@ -30,14 +29,12 @@ class TestConfigService:
 
         assert isinstance(config, CuLoRAConfig)
         assert config.device.preferred_device == DeviceType.CPU
-        assert config.logging.log_level == LogLevel.INFO
         assert "defaults" in service.config_sources
 
     def test_load_config_from_json_file(self) -> None:
         """Test loading configuration from JSON file."""
         config_data = {
             "device": {"preferred_device": "cuda"},
-            "logging": {"log_level": "debug"},
         }
 
         with TempFileHelper.create_config_file(config_data, ".json") as config_file:
@@ -45,7 +42,6 @@ class TestConfigService:
             config = service.load_config(config_file=config_file)
 
             assert config.device.preferred_device == DeviceType.CUDA
-            assert config.logging.log_level == LogLevel.DEBUG
             assert "file" in service.config_sources
             assert str(config_file) in service.config_sources["file"]
 
@@ -53,7 +49,6 @@ class TestConfigService:
         """Test loading configuration from YAML file."""
         config_data = {
             "device": {"preferred_device": "mps"},
-            "logging": {"log_level": "warning"},
         }
 
         with TempFileHelper.create_config_file(config_data, ".yaml") as config_file:
@@ -61,7 +56,6 @@ class TestConfigService:
             config = service.load_config(config_file=config_file)
 
             assert config.device.preferred_device == DeviceType.MPS
-            assert config.logging.log_level == LogLevel.WARNING
             assert "file" in service.config_sources
             assert str(config_file) in service.config_sources["file"]
 
@@ -77,57 +71,26 @@ class TestConfigService:
 
     def test_load_config_from_environment(self) -> None:
         """Test loading configuration from environment variables."""
-        env_vars = {"CULORA_DEVICE_PREFERRED": "cuda", "CULORA_LOG_LEVEL": "error"}
+        env_vars = {"CULORA_DEVICE_PREFERRED": "cuda"}
 
         with patch_environment(**env_vars):
             service = ConfigService()
             config = service.load_config()
 
             assert config.device.preferred_device == DeviceType.CUDA
-            assert config.logging.log_level == LogLevel.ERROR
             assert "environment" in service.config_sources
 
     def test_load_config_cli_overrides(self) -> None:
         """Test loading configuration with CLI overrides."""
         cli_overrides = {
             "device": {"preferred_device": "mps"},
-            "logging": {"log_level": "critical"},
         }
 
         service = ConfigService()
         config = service.load_config(cli_overrides=cli_overrides)
 
         assert config.device.preferred_device == DeviceType.MPS
-        assert config.logging.log_level == LogLevel.CRITICAL
         assert "cli" in service.config_sources
-
-    def test_load_config_precedence(self) -> None:
-        """Test configuration source precedence (CLI > env > file > defaults)."""
-        # Create config file
-        file_config = {
-            "device": {"preferred_device": "cpu"},
-            "logging": {"log_level": "info"},
-        }
-
-        with TempFileHelper.create_config_file(file_config, ".json") as config_file:
-            # Set environment variables
-            env_vars = {
-                "CULORA_DEVICE_PREFERRED": "cuda",
-                "CULORA_LOG_LEVEL": "warning",
-            }
-
-            # Set CLI overrides (should have highest precedence)
-            cli_overrides = {"logging": {"log_level": "error"}}
-
-            with patch_environment(**env_vars):
-                service = ConfigService()
-                config = service.load_config(
-                    config_file=config_file, cli_overrides=cli_overrides
-                )
-
-                # CLI should override logging, env should override device
-                assert config.device.preferred_device == DeviceType.CUDA  # from env
-                assert config.logging.log_level == LogLevel.ERROR  # from CLI
 
     def test_get_config_success(self) -> None:
         """Test getting configuration after loading."""
@@ -159,9 +122,7 @@ class TestConfigService:
                 exported_data = json.load(f)
 
             assert "device" in exported_data
-            assert "logging" in exported_data
             assert exported_data["device"]["preferred_device"] == "cpu"
-            assert exported_data["logging"]["log_level"] == "info"
 
     def test_export_config_not_loaded(self) -> None:
         """Test exporting configuration before loading."""
@@ -176,7 +137,6 @@ class TestConfigService:
         service = ConfigService()
         config_dict = {
             "device": {"preferred_device": "cuda"},
-            "logging": {"log_level": "debug"},
         }
 
         errors = service.validate_config(config_dict)
@@ -187,7 +147,6 @@ class TestConfigService:
         service = ConfigService()
         config_dict = {
             "device": {"preferred_device": "invalid_device"},
-            "logging": {"log_level": "invalid_level"},
         }
 
         errors = service.validate_config(config_dict)
@@ -257,7 +216,7 @@ class TestConfigService:
         """Test deep merge functionality."""
         service = ConfigService()
 
-        base = {"device": {"preferred_device": "cpu"}, "logging": {"log_level": "info"}}
+        base = {"device": {"preferred_device": "cpu"}}
 
         update = {
             "device": {"preferred_device": "cuda"},
@@ -267,7 +226,6 @@ class TestConfigService:
         result = service._deep_merge(base, update)
 
         assert result["device"]["preferred_device"] == "cuda"
-        assert result["logging"]["log_level"] == "info"
         assert result["new_section"]["new_key"] == "new_value"
 
     def test_global_config_service(self) -> None:
@@ -291,7 +249,6 @@ class TestConfigService:
         """Parametrized test for supported configuration file formats."""
         config_data = {
             "device": {"preferred_device": "cuda"},
-            "logging": {"log_level": "debug"},
         }
 
         with TempFileHelper.create_config_file(
@@ -301,7 +258,6 @@ class TestConfigService:
             config = service.load_config(config_file=config_file)
 
             assert config.device.preferred_device == DeviceType.CUDA
-            assert config.logging.log_level == LogLevel.DEBUG
 
     def test_load_config_validation_error(self) -> None:
         """Test load_config with validation errors."""

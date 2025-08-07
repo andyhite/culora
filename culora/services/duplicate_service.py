@@ -1,6 +1,5 @@
 """Service for duplicate image detection and analysis."""
 
-import logging
 import os
 from collections import defaultdict
 from pathlib import Path
@@ -18,9 +17,6 @@ from culora.domain.models.duplicate import (
     HashAlgorithm,
     ImageHash,
 )
-from culora.utils import get_logger
-
-logger = get_logger(__name__)
 
 
 class DuplicateService:
@@ -33,12 +29,6 @@ class DuplicateService:
             config: Configuration for duplicate detection
         """
         self.config = config
-        self._suppress_pil_warnings()
-
-    def _suppress_pil_warnings(self) -> None:
-        """Suppress verbose PIL warnings."""
-        pil_logger = logging.getLogger("PIL")
-        pil_logger.setLevel(logging.ERROR)
 
     def calculate_hash(self, image_path: Path) -> ImageHash:
         """Calculate perceptual hash for an image.
@@ -105,19 +95,8 @@ class DuplicateService:
             try:
                 image_hash = self.calculate_hash(image_path)
                 hashes.append(image_hash)
-            except CuLoRAImageError as e:
-                logger.warning(
-                    "Failed to hash image", image_path=str(image_path), error=str(e)
-                )
+            except CuLoRAImageError:
                 failed_count += 1
-
-        if failed_count > 0:
-            logger.info(
-                "Hash calculation completed with failures",
-                successful=len(hashes),
-                failed=failed_count,
-                total=len(image_paths),
-            )
 
         return hashes
 
@@ -136,32 +115,23 @@ class DuplicateService:
         # Compare each hash with every other hash
         for i, hash1 in enumerate(hashes):
             for _j, hash2 in enumerate(hashes[i + 1 :], i + 1):
-                try:
-                    # Calculate Hamming distance
-                    hash1_obj = imagehash.hex_to_hash(hash1.hash_value)
-                    hash2_obj = imagehash.hex_to_hash(hash2.hash_value)
-                    distance = hash1_obj - hash2_obj
+                # Calculate Hamming distance
+                hash1_obj = imagehash.hex_to_hash(hash1.hash_value)
+                hash2_obj = imagehash.hex_to_hash(hash2.hash_value)
+                distance = hash1_obj - hash2_obj
 
-                    # Check if within threshold
-                    if distance <= threshold:
-                        similarity_score = 1.0 - (distance / 64.0)  # Normalize to 0-1
+                # Check if within threshold
+                if distance <= threshold:
+                    similarity_score = 1.0 - (distance / 64.0)  # Normalize to 0-1
 
-                        match = DuplicateMatch(
-                            image1_path=hash1.image_path,
-                            image2_path=hash2.image_path,
-                            hamming_distance=distance,
-                            similarity_score=similarity_score,
-                            hash_algorithm=hash1.hash_algorithm,
-                        )
-                        matches.append(match)
-
-                except Exception as e:
-                    logger.warning(
-                        "Failed to compare hashes",
-                        hash1=hash1.hash_value,
-                        hash2=hash2.hash_value,
-                        error=str(e),
+                    match = DuplicateMatch(
+                        image1_path=hash1.image_path,
+                        image2_path=hash2.image_path,
+                        hamming_distance=distance,
+                        similarity_score=similarity_score,
+                        hash_algorithm=hash1.hash_algorithm,
                     )
+                    matches.append(match)
 
         return matches
 
@@ -256,18 +226,10 @@ class DuplicateService:
         Returns:
             Complete duplicate analysis results
         """
-        logger.info(
-            "Starting duplicate analysis",
-            total_images=len(image_paths),
-            algorithm=self.config.threshold.hash_algorithm.value,
-            threshold=self.config.threshold.similarity_threshold,
-        )
-
         # Calculate hashes
         hashes = self.calculate_batch_hashes(image_paths)
 
         if not hashes:
-            logger.warning("No valid hashes generated")
             return DuplicateAnalysis(
                 total_images=len(image_paths),
                 total_hashes=0,
@@ -315,15 +277,6 @@ class DuplicateService:
             unique_images=unique_images,
         )
 
-        logger.info(
-            "Duplicate analysis completed",
-            total_hashes=analysis.total_hashes,
-            total_matches=analysis.total_matches,
-            total_groups=analysis.total_groups,
-            duplicate_rate=f"{analysis.duplicate_rate:.1f}%",
-            reduction_rate=f"{analysis.reduction_rate:.1f}%",
-        )
-
         return analysis
 
     def get_file_sizes(self, image_paths: list[Path]) -> dict[str, int]:
@@ -339,10 +292,7 @@ class DuplicateService:
         for path in image_paths:
             try:
                 sizes[str(path)] = os.path.getsize(path)
-            except OSError as e:
-                logger.warning(
-                    "Failed to get file size", image_path=str(path), error=str(e)
-                )
+            except OSError:
                 sizes[str(path)] = 0
         return sizes
 

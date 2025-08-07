@@ -18,12 +18,9 @@ from culora.domain import (
     ImageLoadResult,
     ImageMetadata,
 )
-from culora.utils import get_logger
 
 # Enable loading of truncated images
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-logger = get_logger(__name__)
 
 
 class ImageServiceError(CuLoRAError):
@@ -64,12 +61,6 @@ class ImageService:
         # Initialize MIME types for validation
         mimetypes.init()
 
-        logger.info(
-            "ImageService initialized",
-            supported_formats=self.image_config.supported_formats,
-            max_batch_size=self.image_config.max_batch_size,
-        )
-
     def scan_directory(
         self, directory: Path, show_progress: bool = True
     ) -> DirectoryScanResult:
@@ -93,8 +84,6 @@ class ImageService:
         if not directory.is_dir():
             raise ImageServiceError(f"Path is not a directory: {directory}")
 
-        logger.info("Starting directory scan", directory=str(directory))
-
         image_paths: list[Path] = []
         errors: list[str] = []
         total_files = 0
@@ -104,12 +93,6 @@ class ImageService:
         try:
             for file_path in self._walk_directory(directory):
                 total_files += 1
-
-                if (
-                    show_progress
-                    and total_files % self.image_config.progress_update_interval == 0
-                ):
-                    logger.debug(f"Scanned {total_files} files...")
 
                 if self._is_supported_image(file_path):
                     try:
@@ -131,7 +114,6 @@ class ImageService:
                         continue
 
         except Exception as e:
-            logger.exception("Directory scan failed", directory=str(directory))
             raise ImageServiceError(f"Directory scan failed: {e}") from e
 
         scan_duration = time.time() - start_time
@@ -147,16 +129,6 @@ class ImageService:
             scan_duration=scan_duration,
             errors=errors,
             image_paths=image_paths,
-        )
-
-        logger.info(
-            "Directory scan completed",
-            directory=str(directory),
-            total_files=total_files,
-            valid_images=valid_images,
-            invalid_images=invalid_images,
-            duration=scan_duration,
-            errors=len(errors),
         )
 
         return result
@@ -201,14 +173,6 @@ class ImageService:
                     error_code="IMAGE_TOO_LARGE",
                 )
 
-            logger.debug(
-                "Image loaded successfully",
-                path=str(path),
-                format=image.format,
-                size=f"{image.width}x{image.height}",
-                mode=image.mode,
-            )
-
             return ImageLoadResult(
                 success=True,
                 metadata=metadata,
@@ -216,12 +180,6 @@ class ImageService:
             )
 
         except Exception as e:
-            logger.warning(
-                "Failed to load image",
-                path=str(path),
-                error=str(e),
-            )
-
             # Create metadata with error info
             try:
                 metadata = self._extract_metadata(path, force_invalid=True)
@@ -256,18 +214,12 @@ class ImageService:
             BatchLoadResult with all loaded images and statistics
         """
         start_time = time.time()
-
-        logger.info("Starting batch load", batch_size=len(paths))
-
         results: list[ImageLoadResult] = []
         successful_loads = 0
         failed_loads = 0
         total_size = 0
 
-        for i, path in enumerate(paths):
-            if (i + 1) % self.image_config.progress_update_interval == 0:
-                logger.debug(f"Loaded {i + 1}/{len(paths)} images...")
-
+        for _i, path in enumerate(paths):
             result = self.load_image(path)
             results.append(result)
 
@@ -278,15 +230,6 @@ class ImageService:
                 failed_loads += 1
 
         processing_duration = time.time() - start_time
-
-        logger.info(
-            "Batch load completed",
-            total_images=len(paths),
-            successful=successful_loads,
-            failed=failed_loads,
-            total_size=total_size,
-            duration=processing_duration,
-        )
 
         return BatchLoadResult(
             results=results,
@@ -314,25 +257,13 @@ class ImageService:
         scan_result = self.scan_directory(directory)
 
         if not scan_result.image_paths:
-            logger.warning("No images found in directory", directory=str(directory))
             return
 
         # Process in batches
         batch_size = self.image_config.max_batch_size
-        total_batches = (len(scan_result.image_paths) + batch_size - 1) // batch_size
-
-        logger.info(
-            "Starting batch processing",
-            total_images=len(scan_result.image_paths),
-            batch_size=batch_size,
-            total_batches=total_batches,
-        )
 
         for i in range(0, len(scan_result.image_paths), batch_size):
             batch_paths = scan_result.image_paths[i : i + batch_size]
-            batch_num = i // batch_size + 1
-
-            logger.debug(f"Processing batch {batch_num}/{total_batches}")
 
             yield self.load_batch(batch_paths)
 
@@ -474,8 +405,6 @@ class ImageService:
             )
 
         except Exception as e:
-            logger.debug("Failed to extract metadata", path=str(path), error=str(e))
-
             # Get basic file info even if image is invalid
             try:
                 stat = path.stat()

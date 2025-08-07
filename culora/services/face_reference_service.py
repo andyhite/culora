@@ -4,8 +4,6 @@ import json
 import time
 from pathlib import Path
 
-from structlog import get_logger
-
 from culora.core.exceptions import CuLoRAError
 from culora.domain import CuLoRAConfig, FaceDetection
 from culora.domain.models.face_reference import (
@@ -19,8 +17,6 @@ from culora.domain.models.face_reference import (
 from culora.services.face_analysis_service import get_face_analysis_service
 from culora.services.image_service import get_image_service
 from culora.utils.similarity import cosine_similarity
-
-logger = get_logger(__name__)
 
 
 class FaceReferenceServiceError(CuLoRAError):
@@ -40,11 +36,6 @@ class FaceReferenceService:
         """
         self.config = config
         self.face_config = config.faces
-
-        logger.info(
-            "FaceReferenceService initialized",
-            similarity_threshold=self.face_config.reference_similarity_threshold,
-        )
 
     def process_reference_image(self, image_path: Path) -> ReferenceProcessingResult:
         """Process a single reference image to extract face embeddings.
@@ -100,9 +91,6 @@ class FaceReferenceService:
             return ReferenceProcessingResult(success=True, embeddings=embeddings)
 
         except Exception as e:
-            logger.error(
-                "Reference processing failed", image_path=str(image_path), error=str(e)
-            )
             return ReferenceProcessingResult(
                 success=False, error=f"Processing failed: {e}"
             )
@@ -117,11 +105,6 @@ class FaceReferenceService:
             Reference set with processed images
         """
         reference_set = ReferenceSet()
-
-        logger.info(
-            "Processing reference images from file list",
-            count=len(image_paths),
-        )
 
         for image_path in image_paths:
             try:
@@ -143,11 +126,6 @@ class FaceReferenceService:
                 reference_set.add_reference_image(ref_image)
 
             except Exception as e:
-                logger.error(
-                    "Failed to process reference image",
-                    image_file=str(image_path),
-                    error=str(e),
-                )
                 # Add failed reference
                 ref_image = ReferenceImage(
                     image_path=image_path,
@@ -155,13 +133,6 @@ class FaceReferenceService:
                     error_message=str(e),
                 )
                 reference_set.add_reference_image(ref_image)
-
-        logger.info(
-            "Reference set created from image list",
-            total_images=len(reference_set.images),
-            valid_images=len(reference_set.valid_images),
-            total_embeddings=reference_set.total_embeddings,
-        )
 
         return reference_set
 
@@ -177,7 +148,6 @@ class FaceReferenceService:
         reference_set = ReferenceSet()
 
         if not directory.exists() or not directory.is_dir():
-            logger.warning("Directory does not exist", directory=str(directory))
             return reference_set
 
         # Get all image files
@@ -188,12 +158,6 @@ class FaceReferenceService:
         for format_ext in supported_formats:
             image_files.extend(directory.glob(f"*{format_ext}"))
             image_files.extend(directory.glob(f"*{format_ext.upper()}"))
-
-        logger.info(
-            "Processing reference images",
-            directory=str(directory),
-            count=len(image_files),
-        )
 
         for image_file in image_files:
             try:
@@ -215,11 +179,6 @@ class FaceReferenceService:
                 reference_set.add_reference_image(ref_image)
 
             except Exception as e:
-                logger.error(
-                    "Failed to process reference image",
-                    image_file=str(image_file),
-                    error=str(e),
-                )
                 # Add failed reference
                 ref_image = ReferenceImage(
                     image_path=image_file,
@@ -227,13 +186,6 @@ class FaceReferenceService:
                     error_message=str(e),
                 )
                 reference_set.add_reference_image(ref_image)
-
-        logger.info(
-            "Reference set created",
-            total_images=len(reference_set.images),
-            valid_images=len(reference_set.valid_images),
-            total_embeddings=reference_set.total_embeddings,
-        )
 
         return reference_set
 
@@ -257,14 +209,7 @@ class FaceReferenceService:
             with open(output_path, "w") as f:
                 json.dump(data, f, indent=2)
 
-            logger.info("Reference set saved", output_path=str(output_path))
-
         except Exception as e:
-            logger.error(
-                "Failed to save reference set",
-                output_path=str(output_path),
-                error=str(e),
-            )
             raise FaceReferenceServiceError(f"Failed to save reference set: {e}") from e
 
     def load_reference_set(self, input_path: Path) -> ReferenceSet:
@@ -291,19 +236,9 @@ class FaceReferenceService:
             # Parse into reference set
             reference_set = ReferenceSet.model_validate(data)
 
-            logger.info(
-                "Reference set loaded",
-                input_path=str(input_path),
-                total_images=len(reference_set.images),
-                valid_images=len(reference_set.valid_images),
-            )
-
             return reference_set
 
         except Exception as e:
-            logger.error(
-                "Failed to load reference set", input_path=str(input_path), error=str(e)
-            )
             raise FaceReferenceServiceError(f"Failed to load reference set: {e}") from e
 
     def match_faces_to_reference(
@@ -421,9 +356,6 @@ class FaceReferenceService:
             )
 
         except Exception as e:
-            logger.error(
-                "Face matching failed", image_path=str(image_path), error=str(e)
-            )
             return ReferenceMatchResult(
                 image_path=image_path,
                 success=False,
@@ -451,7 +383,6 @@ class FaceReferenceService:
 
         # If no reference set, fall back to largest face
         if reference_set is None or not reference_set.get_all_embeddings():
-            logger.debug("No reference set available, using largest face fallback")
             return max(faces, key=lambda f: f.face_area_ratio)
 
         try:
@@ -482,26 +413,16 @@ class FaceReferenceService:
                 best_face is not None
                 and best_similarity >= self.face_config.reference_similarity_threshold
             ):
-                logger.debug(
-                    "Selected face using reference matching", similarity=best_similarity
-                )
                 return best_face
 
             # Fall back to largest face if enabled
             if self.face_config.use_reference_fallback:
-                logger.debug(
-                    "Reference matching below threshold, falling back to largest face"
-                )
                 return max(faces, key=lambda f: f.face_area_ratio)
 
             # No fallback, return None
-            logger.debug("Reference matching below threshold, no fallback enabled")
             return None
 
-        except Exception as e:
-            logger.warning(
-                "Reference matching failed, using largest face fallback", error=str(e)
-            )
+        except Exception:
             return max(faces, key=lambda f: f.face_area_ratio)
 
 
@@ -520,7 +441,6 @@ def initialize_face_reference_service(config: CuLoRAConfig) -> FaceReferenceServ
     """
     global _face_reference_service
     _face_reference_service = FaceReferenceService(config)
-    logger.info("Global FaceReferenceService initialized")
     return _face_reference_service
 
 
@@ -543,6 +463,5 @@ def get_face_reference_service() -> FaceReferenceService:
             config = config_service.load_config()
 
         _face_reference_service = FaceReferenceService(config)
-        logger.info("Global FaceReferenceService initialized")
 
     return _face_reference_service

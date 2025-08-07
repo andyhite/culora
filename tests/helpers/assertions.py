@@ -12,7 +12,6 @@ class AssertionHelpers:
     def assert_config_equal(actual: CuLoRAConfig, expected: CuLoRAConfig) -> None:
         """Assert that two configurations are equal."""
         assert actual.device.preferred_device == expected.device.preferred_device
-        assert actual.logging.log_level == expected.logging.log_level
 
     @staticmethod
     def assert_device_summary_valid(summary: dict[str, Any]) -> None:

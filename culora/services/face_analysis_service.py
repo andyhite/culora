@@ -19,9 +19,6 @@ from culora.domain import (
     ImageLoadResult,
 )
 from culora.services.device_service import get_device_service
-from culora.utils.logging import get_logger
-
-logger = get_logger(__name__)
 
 
 class FaceAnalysisServiceError(CuLoRAError):
@@ -48,13 +45,6 @@ class FaceAnalysisService:
         self._model: Any | None = None
         self._device_context: dict[str, Any] | None = None
 
-        logger.debug(
-            "FaceAnalysisService initialized",
-            model_name=self.face_config.model_name,
-            confidence_threshold=self.face_config.confidence_threshold,
-            device_preference=self.face_config.device_preference,
-        )
-
     def _initialize_model(self) -> None:
         """Initialize InsightFace model with device optimization.
 
@@ -66,30 +56,7 @@ class FaceAnalysisService:
 
         try:
             # Import InsightFace here to allow for optional dependency
-            # Suppress third-party library output
-            import logging
-            import os
-            import warnings
-
             import insightface
-
-            # Suppress InsightFace and onnxruntime output
-            logging.getLogger("insightface").setLevel(logging.ERROR)
-            logging.getLogger("onnxruntime").setLevel(logging.ERROR)
-
-            # Suppress future warnings from InsightFace
-            warnings.filterwarnings(
-                "ignore", category=FutureWarning, module="insightface"
-            )
-
-            # Suppress tqdm progress bars
-            os.environ["TQDM_DISABLE"] = "1"
-
-            logger.info(
-                "Initializing InsightFace model",
-                model_name=self.face_config.model_name,
-                cache_dir=str(self.face_config.model_cache_dir),
-            )
 
             # Get device information from DeviceService
             device_service = get_device_service()
@@ -129,12 +96,6 @@ class FaceAnalysisService:
                 "device_type": device_info.device_type.value,
                 "ctx_id": ctx_id,
             }
-
-            logger.info(
-                "InsightFace model initialized successfully",
-                providers=providers,
-                device_type=device_info.device_type.value,
-            )
 
         except ImportError as e:
             raise FaceAnalysisServiceError(
@@ -254,13 +215,6 @@ class FaceAnalysisService:
 
             processing_duration = time.time() - start_time
 
-            logger.debug(
-                "Face analysis completed",
-                image_path=str(image_result.metadata.path),
-                faces_detected=len(detected_faces),
-                processing_duration=processing_duration,
-            )
-
             return FaceAnalysisResult(
                 image_path=image_result.metadata.path,
                 success=True,
@@ -273,13 +227,6 @@ class FaceAnalysisService:
 
         except Exception as e:
             processing_duration = time.time() - start_time
-
-            logger.error(
-                "Face analysis failed",
-                image_path=str(image_result.metadata.path),
-                error=str(e),
-                processing_duration=processing_duration,
-            )
 
             return FaceAnalysisResult(
                 image_path=image_result.metadata.path,
@@ -321,15 +268,6 @@ class FaceAnalysisService:
         images_without_faces = successful_analyses - images_with_faces
 
         processing_duration = time.time() - start_time
-
-        logger.info(
-            "Batch face analysis completed",
-            total_images=len(results),
-            successful_analyses=successful_analyses,
-            failed_analyses=failed_analyses,
-            total_faces_detected=total_faces_detected,
-            processing_duration=processing_duration,
-        )
 
         return BatchFaceAnalysisResult(
             results=results,
@@ -394,34 +332,28 @@ class FaceAnalysisService:
 
         # Use injected reference service for primary face selection
         if reference_service is not None:
-            try:
-                primary_face = reference_service.select_primary_face(
-                    face_result.faces, reference_set
+            primary_face = reference_service.select_primary_face(
+                face_result.faces, reference_set
+            )
+
+            # If we found a primary face, reorder the faces list to put it first
+            if primary_face is not None:
+                faces_reordered = [primary_face]
+                faces_reordered.extend(
+                    [f for f in face_result.faces if f != primary_face]
                 )
 
-                # If we found a primary face, reorder the faces list to put it first
-                if primary_face is not None:
-                    faces_reordered = [primary_face]
-                    faces_reordered.extend(
-                        [f for f in face_result.faces if f != primary_face]
-                    )
-
-                    # Create new result with reordered faces
-                    return FaceAnalysisResult(
-                        image_path=face_result.image_path,
-                        success=face_result.success,
-                        faces=faces_reordered,
-                        processing_duration=face_result.processing_duration,
-                        processed_at=face_result.processed_at,
-                        image_width=face_result.image_width,
-                        image_height=face_result.image_height,
-                        error=face_result.error,
-                        error_code=face_result.error_code,
-                    )
-
-            except Exception as e:
-                logger.warning(
-                    "Reference matching failed, returning original result", error=str(e)
+                # Create new result with reordered faces
+                return FaceAnalysisResult(
+                    image_path=face_result.image_path,
+                    success=face_result.success,
+                    faces=faces_reordered,
+                    processing_duration=face_result.processing_duration,
+                    processed_at=face_result.processed_at,
+                    image_width=face_result.image_width,
+                    image_height=face_result.image_height,
+                    error=face_result.error,
+                    error_code=face_result.error_code,
                 )
 
         return face_result
@@ -467,7 +399,6 @@ def initialize_face_analysis_service(config: CuLoRAConfig) -> FaceAnalysisServic
     """
     global _face_analysis_service
     _face_analysis_service = FaceAnalysisService(config)
-    logger.info("Global FaceAnalysisService initialized")
     return _face_analysis_service
 
 
@@ -490,6 +421,5 @@ def get_face_analysis_service() -> FaceAnalysisService:
             config = config_service.load_config()
 
         _face_analysis_service = FaceAnalysisService(config)
-        logger.info("Global FaceAnalysisService initialized")
 
     return _face_analysis_service

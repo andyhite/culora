@@ -18,10 +18,7 @@ from culora.core import (
     MissingConfigError,
 )
 from culora.domain import CuLoRAConfig
-from culora.utils import get_logger
 from culora.utils.app_dir import ensure_app_directories, get_default_config_file
-
-logger = get_logger(__name__)
 
 # Default config file location (app directory only)
 DEFAULT_CONFIG_PATH = get_default_config_file()
@@ -62,11 +59,6 @@ class ConfigService:
         Raises:
             ConfigurationError: If configuration is invalid
         """
-        logger.info(
-            "Loading configuration",
-            config_file=str(config_file) if config_file else None,
-        )
-
         try:
             # Start with default configuration
             config_dict: dict[str, Any] = {}
@@ -77,39 +69,24 @@ class ConfigService:
                 file_config = self._load_from_file(config_file)
                 config_dict = self._deep_merge(config_dict, file_config)
                 self._config_file = config_file
-                logger.info(
-                    "Loaded configuration from file", config_file=str(config_file)
-                )
 
             # Load from environment variables
             env_config = self._load_from_env(env_prefix)
             if env_config:
                 config_dict = self._deep_merge(config_dict, env_config)
                 self._env_loaded = True
-                logger.info("Loaded configuration from environment variables")
 
             # Apply CLI overrides
             if cli_overrides:
                 config_dict = self._deep_merge(config_dict, cli_overrides)
                 self._cli_loaded = True
-                logger.info("Applied CLI configuration overrides")
 
             # Validate and create configuration
             self._config = self._create_config(config_dict)
 
-            logger.info(
-                "Configuration loaded successfully",
-                sources=list(self.config_sources.keys()),
-                device_type=self._config.device.preferred_device,
-                log_level=self._config.logging.log_level,
-            )
-
             return self._config
 
         except ValidationError as e:
-            logger.error(
-                "Configuration validation failed", validation_errors=e.errors()
-            )
             raise InvalidConfigError(
                 field_name="configuration",
                 field_value="<validation errors>",
@@ -121,7 +98,6 @@ class ConfigService:
             raise  # Re-raise config-specific errors
 
         except Exception as e:
-            logger.exception("Failed to load configuration", exc_info=e)
             raise ConfigError(
                 f"Configuration loading failed: {e}",
                 error_code="CONFIG_LOAD_FAILED",
@@ -175,8 +151,6 @@ class ConfigService:
         """
         config = self.get_config()
 
-        logger.info("Exporting configuration", output_path=str(output_path))
-
         try:
             # Use model_dump for Pydantic v2 compatibility and ensure string serialization
             if hasattr(config, "model_dump"):
@@ -189,12 +163,7 @@ class ConfigService:
 
             self._save_to_file(config_dict, output_path)
 
-            logger.info(
-                "Configuration exported successfully", output_path=str(output_path)
-            )
-
         except Exception as e:
-            logger.exception("Failed to export configuration", exc_info=e)
             raise ConfigError(
                 f"Configuration export failed: {e}",
                 error_code="CONFIG_EXPORT_FAILED",
@@ -211,7 +180,6 @@ class ConfigService:
         """
         try:
             CuLoRAConfig.from_dict(config_dict)
-            logger.debug("Configuration validation passed")
             return {}
         except ValidationError as e:
             errors = {}
@@ -219,11 +187,6 @@ class ConfigService:
                 field_path = ".".join(str(x) for x in error["loc"])
                 errors[field_path] = error["msg"]
 
-            logger.warning(
-                "Configuration validation failed",
-                error_count=len(errors),
-                errors=list(errors.keys()),
-            )
             return errors
 
     def get_config_summary(self) -> dict[str, Any]:
@@ -266,15 +229,9 @@ class ConfigService:
                         f"Configuration key '{key}' not found in path '{key_path}'"
                     )
 
-            logger.debug(
-                "Retrieved configuration value", key_path=key_path, value=current
-            )
             return current
 
-        except Exception as e:
-            logger.error(
-                "Failed to get configuration value", key_path=key_path, error=str(e)
-            )
+        except Exception:
             raise
 
     def set_config_value(
@@ -292,8 +249,6 @@ class ConfigService:
             InvalidConfigError: If the new configuration is invalid
             ConfigError: If setting or saving fails
         """
-        logger.info("Setting configuration value", key_path=key_path, value=value)
-
         try:
             # Get current config as dict
             current_config = self.get_config()
@@ -323,20 +278,10 @@ class ConfigService:
             target_file = self._resolve_config_file(config_file)
             self._save_to_file(config_dict, target_file)
 
-            logger.info(
-                "Configuration value set successfully",
-                key_path=key_path,
-                value=value,
-                saved_to=str(target_file),
-            )
-
         except (InvalidConfigError, MissingConfigError):
             raise  # Re-raise config-specific errors
 
         except Exception as e:
-            logger.exception(
-                "Failed to set configuration value", key_path=key_path, value=value
-            )
             raise ConfigError(
                 f"Failed to set configuration value '{key_path}': {e}",
                 error_code="CONFIG_SET_FAILED",
@@ -363,8 +308,6 @@ class ConfigService:
             MissingConfigError: If file not found
             InvalidConfigError: If file cannot be parsed
         """
-        logger.info("Loading configuration from file", config_file=str(config_file))
-
         try:
             with open(config_file) as f:
                 if config_file.suffix.lower() in [".yaml", ".yml"]:
@@ -398,8 +341,6 @@ class ConfigService:
         Raises:
             ValueError: If unsupported file format
         """
-        logger.info("Saving configuration to file", output_path=str(output_path))
-
         if output_path.suffix.lower() in [".yaml", ".yml"]:
             with open(output_path, "w") as f:
                 yaml.dump(config_dict, f, default_flow_style=False, indent=2)
@@ -425,8 +366,6 @@ class ConfigService:
             "DEVICE_PREFERRED": ["device", "preferred_device"],
             "DEVICE_FALLBACK": ["device", "fallback_device"],
             "DEVICE_BATCH_SIZE": ["device", "batch_size"],
-            "LOG_LEVEL": ["logging", "log_level"],
-            "LOG_FILE": ["logging", "log_file"],
             "IMAGES_MAX_BATCH_SIZE": ["images", "max_batch_size"],
             "IMAGES_MAX_FILE_SIZE": ["images", "max_file_size"],
             "IMAGES_RECURSIVE_SCAN": ["images", "recursive_scan"],
@@ -462,13 +401,6 @@ class ConfigService:
                         current[key] = {}
                     current = current[key]
                 current[config_path[-1]] = converted_value
-
-                logger.debug(
-                    "Loaded environment variable",
-                    env_var=env_var,
-                    config_path=".".join(config_path),
-                    value=converted_value,
-                )
 
         return config
 
@@ -540,7 +472,6 @@ class ConfigService:
         Raises:
             ValidationError: If configuration is invalid
         """
-        logger.debug("Creating CuLoRA configuration from dictionary")
         return CuLoRAConfig.from_dict(config_dict)
 
     def _find_config_file(self, provided_file: Path | None) -> Path | None:
@@ -557,10 +488,8 @@ class ConfigService:
 
         # Check default app directory location
         if DEFAULT_CONFIG_PATH.exists():
-            logger.debug("Found default config file", path=str(DEFAULT_CONFIG_PATH))
             return DEFAULT_CONFIG_PATH
 
-        logger.debug("No config file found in app directory")
         return None
 
     def _resolve_config_file(self, provided_file: Path | None) -> Path:
@@ -586,7 +515,6 @@ class ConfigService:
         # Use default app directory location
         default_file = DEFAULT_CONFIG_PATH
         default_file.parent.mkdir(parents=True, exist_ok=True)
-        logger.info("Creating default config file", path=str(default_file))
         return default_file
 
     def _set_nested_value(

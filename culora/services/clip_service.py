@@ -2,7 +2,7 @@
 
 import time
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -26,9 +26,6 @@ from culora.domain.models.clip import (
     SemanticSelectionResult,
 )
 from culora.services.device_service import get_device_service
-from culora.utils import get_logger
-
-logger = get_logger(__name__)
 
 
 class CLIPServiceError(CuLoRAError):
@@ -80,8 +77,6 @@ class CLIPService:
 
         # Embedding cache
         self._embedding_cache: dict[str, SemanticEmbedding] = {}
-
-        logger.info("CLIP service initialized")
 
     def extract_embedding(
         self, image: Image.Image, path: Path
@@ -148,7 +143,6 @@ class CLIPService:
         except Exception as e:
             duration = time.time() - start_time
             error_msg = f"Embedding extraction failed for {path}: {e}"
-            logger.warning(error_msg)
 
             return SemanticAnalysisResult(
                 path=path,
@@ -172,8 +166,6 @@ class CLIPService:
         start_time = time.time()
         results: list[SemanticAnalysisResult] = []
 
-        logger.info(f"Starting semantic analysis for {len(images_and_paths)} images")
-
         # Process images in batches for efficiency
         batch_size = self.clip_config.batch_size
         for i in range(0, len(images_and_paths), batch_size):
@@ -191,11 +183,6 @@ class CLIPService:
 
         batch_result = self._calculate_batch_statistics(
             results, successful_results, total_duration
-        )
-
-        logger.info(
-            f"Semantic analysis completed: {batch_result.successful_analyses}/"
-            f"{len(results)} successful"
         )
 
         return batch_result
@@ -326,13 +313,11 @@ class CLIPService:
 
         try:
             if method == ClusteringMethod.KMEANS:
-                clusters, labels, inertia = self._kmeans_clustering(embedding_matrix)
+                _, labels, inertia = self._kmeans_clustering(embedding_matrix)
             elif method == ClusteringMethod.HIERARCHICAL:
-                clusters, labels, inertia = self._hierarchical_clustering(
-                    embedding_matrix
-                )
+                _, labels, inertia = self._hierarchical_clustering(embedding_matrix)
             elif method == ClusteringMethod.DBSCAN:
-                clusters, labels, inertia = self._dbscan_clustering(embedding_matrix)
+                _, labels, inertia = self._dbscan_clustering(embedding_matrix)
             else:
                 raise ClusteringError(f"Unsupported clustering method: {method}")
 
@@ -436,8 +421,6 @@ class CLIPService:
         if self._model is not None and self._processor is not None:
             return
 
-        logger.info(f"Loading CLIP model: {self.clip_config.model_name.value}")
-
         try:
             # Get optimal device
             device_info = self.device_service.get_selected_device()
@@ -470,12 +453,11 @@ class CLIPService:
                     model_name, cache_dir=cache_dir, torch_dtype=torch.float32
                 )
 
-            # Move model to device
-            if self._model is not None and self._device is not None:
-                self._model = self._model.to(self._device)  # type: ignore[arg-type]
-                self._model.eval()
-
-            logger.info(f"CLIP model loaded successfully on {self._device}")
+            # Move model to device (guaranteed to be non-None at this point)
+            assert self._model is not None
+            assert self._device is not None
+            self._model = self._model.to(self._device)  # type: ignore[arg-type]
+            self._model.eval()
 
         except Exception as e:
             raise CLIPServiceError(f"Failed to load CLIP model: {e}") from e
@@ -525,8 +507,14 @@ class CLIPService:
 
             # Extract embeddings
             with torch.no_grad():
+                pixel_values = inputs["pixel_values"]
+                # Ensure pixel_values is a tensor and cast to FloatTensor
+                if not isinstance(pixel_values, torch.Tensor):
+                    raise EmbeddingExtractionError("Expected tensor for pixel_values")
+                # Cast to FloatTensor as expected by the model
+                float_tensor = cast(torch.FloatTensor, pixel_values.float())
                 image_features = self._model.get_image_features(
-                    pixel_values=inputs["pixel_values"]
+                    pixel_values=float_tensor
                 )
 
             # Convert to numpy and normalize
@@ -627,7 +615,7 @@ class CLIPService:
         else:
             n_clusters = min(self.clip_config.max_clusters, len(embedding_matrix) // 2)
 
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init="auto")
         labels = kmeans.fit_predict(embedding_matrix)
 
         return kmeans, labels, kmeans.inertia_
@@ -670,7 +658,7 @@ class CLIPService:
         k_range = range(2, max_k + 1)
 
         for k in k_range:
-            kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
+            kmeans = KMeans(n_clusters=k, random_state=42, n_init="auto")
             kmeans.fit(embedding_matrix)
             inertias.append(kmeans.inertia_)
 

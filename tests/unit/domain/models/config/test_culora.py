@@ -6,9 +6,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from culora.domain.enums import LogLevel
 from culora.domain.enums.device_types import DeviceType
-from culora.domain.models.config import CuLoRAConfig, DeviceConfig, LoggingConfig
+from culora.domain.models.config import CuLoRAConfig, DeviceConfig
 from culora.utils.app_dir import get_models_dir
 
 from .....helpers import AssertionHelpers, ConfigBuilder
@@ -21,32 +20,22 @@ class TestCuLoRAConfig:
         """Test CuLoRAConfig default initialization."""
         config = CuLoRAConfig()
         assert isinstance(config.device, DeviceConfig)
-        assert isinstance(config.logging, LoggingConfig)
         assert config.device.preferred_device == DeviceType.CPU
-        assert config.logging.log_level == LogLevel.INFO
 
     def test_culora_config_with_custom_values(self) -> None:
         """Test CuLoRAConfig with custom values."""
-        config = (
-            ConfigBuilder()
-            .with_device(DeviceType.CUDA)
-            .with_log_level(LogLevel.DEBUG)
-            .build()
-        )
+        config = ConfigBuilder().with_device(DeviceType.CUDA).build()
 
         assert config.device.preferred_device == DeviceType.CUDA
-        assert config.logging.log_level == LogLevel.DEBUG
 
     def test_culora_config_from_dict(self) -> None:
         """Test CuLoRAConfig creation from dictionary."""
         config_dict = {
             "device": {"preferred_device": "mps"},
-            "logging": {"log_level": "warning"},
         }
         config = CuLoRAConfig.from_dict(config_dict)
 
         assert config.device.preferred_device == DeviceType.MPS
-        assert config.logging.log_level == LogLevel.WARNING
 
     def test_culora_config_from_dict_partial(self) -> None:
         """Test CuLoRAConfig creation from partial dictionary."""
@@ -54,28 +43,20 @@ class TestCuLoRAConfig:
         config = CuLoRAConfig.from_dict(config_dict)
 
         assert config.device.preferred_device == DeviceType.CUDA
-        assert config.logging.log_level == LogLevel.INFO  # Default
 
     def test_culora_config_from_dict_empty(self) -> None:
         """Test CuLoRAConfig creation from empty dictionary."""
         config = CuLoRAConfig.from_dict({})
 
         assert config.device.preferred_device == DeviceType.CPU
-        assert config.logging.log_level == LogLevel.INFO
 
     def test_culora_config_model_dump(self) -> None:
         """Test CuLoRAConfig serialization."""
-        config = (
-            ConfigBuilder()
-            .with_device(DeviceType.CUDA)
-            .with_log_level(LogLevel.ERROR)
-            .build()
-        )
+        config = ConfigBuilder().with_device(DeviceType.CUDA).build()
 
         dumped = config.model_dump(mode="json")
         expected = {
             "device": {"preferred_device": "cuda"},
-            "logging": {"log_level": "error"},
             "images": {
                 "supported_formats": [
                     ".jpg",
@@ -237,38 +218,24 @@ class TestCuLoRAConfig:
 
     def test_culora_config_model_dump_json(self) -> None:
         """Test CuLoRAConfig JSON serialization."""
-        config = (
-            ConfigBuilder()
-            .with_device(DeviceType.MPS)
-            .with_log_level(LogLevel.WARNING)
-            .build()
-        )
+        config = ConfigBuilder().with_device(DeviceType.MPS).build()
 
         json_str = config.model_dump_json()
         parsed = json.loads(json_str)
 
         assert parsed["device"]["preferred_device"] == "mps"
-        assert parsed["logging"]["log_level"] == "warning"
 
         # Check formatting (should be indented)
         assert "\n" in json_str
 
     def test_culora_config_get_section(self) -> None:
         """Test CuLoRAConfig get_section method."""
-        config = (
-            ConfigBuilder()
-            .with_device(DeviceType.CUDA)
-            .with_log_level(LogLevel.DEBUG)
-            .build()
-        )
+        config = ConfigBuilder().with_device(DeviceType.CUDA).build()
 
         device_section = config.get_section("device")
-        logging_section = config.get_section("logging")
 
         assert isinstance(device_section, DeviceConfig)
-        assert isinstance(logging_section, LoggingConfig)
         assert device_section.preferred_device == DeviceType.CUDA
-        assert logging_section.log_level == LogLevel.DEBUG
 
     def test_culora_config_get_section_invalid(self) -> None:
         """Test CuLoRAConfig get_section with invalid section name."""
@@ -294,7 +261,6 @@ class TestCuLoRAConfig:
         with pytest.raises(ValidationError) as exc_info:
             CuLoRAConfig(
                 device={"preferred_device": "invalid_device"},  # type: ignore[arg-type]
-                logging={"log_level": "debug"},  # type: ignore[arg-type]
             )
 
         errors = exc_info.value.errors()
@@ -304,24 +270,9 @@ class TestCuLoRAConfig:
 
     def test_culora_config_equality(self) -> None:
         """Test CuLoRAConfig equality comparison."""
-        config1 = (
-            ConfigBuilder()
-            .with_device(DeviceType.CUDA)
-            .with_log_level(LogLevel.DEBUG)
-            .build()
-        )
-        config2 = (
-            ConfigBuilder()
-            .with_device(DeviceType.CUDA)
-            .with_log_level(LogLevel.DEBUG)
-            .build()
-        )
-        config3 = (
-            ConfigBuilder()
-            .with_device(DeviceType.MPS)
-            .with_log_level(LogLevel.DEBUG)
-            .build()
-        )
+        config1 = ConfigBuilder().with_device(DeviceType.CUDA).build()
+        config2 = ConfigBuilder().with_device(DeviceType.CUDA).build()
+        config3 = ConfigBuilder().with_device(DeviceType.MPS).build()
 
         AssertionHelpers.assert_config_equal(config1, config2)
         assert config1 != config3
@@ -346,35 +297,8 @@ class TestCuLoRAConfig:
 
     def test_culora_config_use_enum_values(self) -> None:
         """Test that enum values are used in serialization."""
-        config = (
-            ConfigBuilder()
-            .with_device(DeviceType.CUDA)
-            .with_log_level(LogLevel.ERROR)
-            .build()
-        )
+        config = ConfigBuilder().with_device(DeviceType.CUDA).build()
 
         # When serialized, should use enum values, not enum names
         dumped = config.model_dump()
         assert dumped["device"]["preferred_device"] == "cuda"  # value, not "CUDA"
-        assert dumped["logging"]["log_level"] == "error"  # value, not "ERROR"
-
-    @pytest.mark.parametrize(
-        "device_type,log_level",
-        [
-            (DeviceType.CUDA, LogLevel.DEBUG),
-            (DeviceType.MPS, LogLevel.INFO),
-            (DeviceType.CPU, LogLevel.WARNING),
-            (DeviceType.CUDA, LogLevel.ERROR),
-            (DeviceType.MPS, LogLevel.CRITICAL),
-        ],
-    )
-    def test_culora_config_combinations(
-        self, device_type: DeviceType, log_level: LogLevel
-    ) -> None:
-        """Parametrized test for various device/log level combinations."""
-        config = (
-            ConfigBuilder().with_device(device_type).with_log_level(log_level).build()
-        )
-
-        assert config.device.preferred_device == device_type
-        assert config.logging.log_level == log_level

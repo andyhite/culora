@@ -128,11 +128,6 @@ class TestValidateConfigKey:
         result = validate_config_key("device.preferred_device")
         assert result == "device.preferred_device"
 
-    def test_validate_config_key_valid_logging(self) -> None:
-        """Test validation with valid logging key."""
-        result = validate_config_key("logging.log_level")
-        assert result == "logging.log_level"
-
     def test_validate_config_key_valid_simple(self) -> None:
         """Test validation with simple key (no dots)."""
         result = validate_config_key("simple_key")

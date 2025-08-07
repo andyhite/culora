@@ -1,8 +1,5 @@
 {
   "device": {
     "preferred_device": "cuda"
-  },
-  "logging": {
-    "log_level": "debug"
   }
 }
