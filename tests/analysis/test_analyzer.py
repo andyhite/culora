@@ -283,19 +283,17 @@ class TestAnalyzeFace:
     """Tests for analyze_face function."""
 
     @patch("culora.analysis.analyzer.get_cached_yolo_model")
-    def test_analyze_face_people_detected(self, mock_get_cached_model: Any) -> None:
-        """Test face analysis with people detected using YOLO11."""
+    def test_analyze_face_faces_detected(self, mock_get_cached_model: Any) -> None:
+        """Test face analysis with faces detected using specialized YOLO11 face model."""
         # Setup mocks
         mock_model = MagicMock()
         mock_get_cached_model.return_value = mock_model
 
-        # Mock YOLOv8 results
+        # Mock YOLO face detection results (no class filtering needed)
         mock_box1 = MagicMock()
-        mock_box1.cls = [0]  # Person class
         mock_box1.conf = [0.85]
 
         mock_box2 = MagicMock()
-        mock_box2.cls = [0]  # Person class
         mock_box2.conf = [0.92]
 
         mock_result = MagicMock()
@@ -311,24 +309,31 @@ class TestAnalyzeFace:
         assert result.stage == AnalysisStage.FACE
         assert result.result == AnalysisResult.PASS
         assert result.reason is not None
-        assert "Detected 2 person(s)" in result.reason
-        assert "average confidence 0.885" in result.reason
+        assert "Detected 2 faces" in result.reason
+        assert (
+            "best: 0.920" in result.reason
+        )  # Highest confidence should be shown first
+        assert "avg: 0.885" in result.reason
 
-        # Check metadata
+        # Check metadata - confidence scores should be sorted by highest first
         assert result.metadata["face_count"] == "2"
-        assert result.metadata["confidence_scores"] == "0.850,0.920"
+        assert (
+            result.metadata["confidence_scores"] == "0.920,0.850"
+        )  # Sorted highest first
         assert result.metadata["average_confidence"] == "0.885"
-        assert result.metadata["model"] == "yolo11n.pt"
-        assert result.metadata["detection_type"] == "person"
+        assert result.metadata["highest_confidence"] == "0.920"
+        assert result.metadata["confidence_threshold_met"] == "True"
+        assert result.metadata["model"] == "AdamCodd/YOLOv11n-face-detection:model.pt"
+        assert result.metadata["detection_type"] == "face"
 
     @patch("culora.analysis.analyzer.get_cached_yolo_model")
-    def test_analyze_face_no_people(self, mock_get_cached_model: Any) -> None:
-        """Test face analysis with no people detected."""
+    def test_analyze_face_no_faces(self, mock_get_cached_model: Any) -> None:
+        """Test face analysis with no faces detected."""
         # Setup mocks
         mock_model = MagicMock()
         mock_get_cached_model.return_value = mock_model
 
-        # Mock YOLOv8 results with no person detections
+        # Mock YOLO results with no face detections
         mock_result = MagicMock()
         mock_result.boxes = None  # No detections
 
@@ -342,12 +347,53 @@ class TestAnalyzeFace:
         assert result.stage == AnalysisStage.FACE
         assert result.result == AnalysisResult.FAIL
         assert result.reason is not None
-        assert "No people detected in image" in result.reason
+        assert "No faces detected in image" in result.reason
 
         # Check metadata
         assert result.metadata["face_count"] == "0"
         assert result.metadata["confidence_scores"] == ""
         assert result.metadata["average_confidence"] == "0.000"
+
+    @patch("culora.analysis.analyzer.get_cached_yolo_model")
+    def test_analyze_face_low_confidence(self, mock_get_cached_model: Any) -> None:
+        """Test face analysis with faces detected but below confidence threshold."""
+        # Setup mocks
+        mock_model = MagicMock()
+        mock_get_cached_model.return_value = mock_model
+
+        # Mock YOLO face detection results with low confidence (below default 0.5 threshold)
+        mock_box1 = MagicMock()
+        mock_box1.conf = [0.3]  # Below default threshold
+
+        mock_box2 = MagicMock()
+        mock_box2.conf = [0.4]  # Below default threshold
+
+        mock_result = MagicMock()
+        mock_result.boxes = [mock_box1, mock_box2]
+
+        mock_model.return_value = [mock_result]
+
+        # Test
+        image_path = Path("/fake/path/image.jpg")
+        result = analyze_face(image_path)
+
+        # Assertions
+        assert result.stage == AnalysisStage.FACE
+        assert result.result == AnalysisResult.FAIL  # Should fail due to low confidence
+        assert result.reason is not None
+        assert (
+            "Detected 2 face(s) but highest confidence 0.400 below threshold 0.500"
+            in result.reason
+        )
+
+        # Check metadata - should still record the faces but mark threshold not met
+        assert result.metadata["face_count"] == "2"
+        assert (
+            result.metadata["confidence_scores"] == "0.400,0.300"
+        )  # Sorted highest first
+        assert result.metadata["average_confidence"] == "0.350"
+        assert result.metadata["highest_confidence"] == "0.400"
+        assert result.metadata["confidence_threshold_met"] == "False"
 
     @patch("culora.analysis.analyzer.get_cached_yolo_model")
     def test_analyze_face_yolo_error(self, mock_get_cached_model: Any) -> None:
@@ -392,40 +438,36 @@ class TestAnalyzeFace:
             "Failed to analyze face detection: YOLO inference failed" in result.reason
         )
 
-    @patch("culora.analysis.analyzer.detect_optimal_device")
-    @patch("culora.analysis.analyzer.YOLO")
-    def test_analyze_face_with_custom_config(
-        self, mock_yolo: Any, mock_device_detect: Any
-    ) -> None:
+    @patch("culora.analysis.analyzer.get_cached_yolo_model")
+    def test_analyze_face_with_custom_config(self, mock_get_cached_model: Any) -> None:
         """Test face analysis with custom configuration parameters."""
         from culora.models.analysis import StageConfig
 
         # Setup mocks
-        mock_device_detect.return_value = "cuda"
         mock_model = MagicMock()
-        mock_yolo.return_value = mock_model
+        mock_get_cached_model.return_value = mock_model
 
-        # Mock YOLO results
+        # Mock YOLO face detection results
         mock_box = MagicMock()
-        mock_box.cls = [0]  # Person class
         mock_box.conf = [0.75]
 
         mock_result = MagicMock()
         mock_result.boxes = [mock_box]
         mock_model.return_value = [mock_result]
 
-        # Create custom config
+        # Create custom config with face detection model
         custom_config = StageConfig(
             stage=AnalysisStage.FACE,
             config={
                 "confidence_threshold": "0.7",
-                "model_name": "yolo11s.pt",
+                "model_repo": "AdamCodd/YOLOv11n-face-detection",
+                "model_filename": "model.pt",
                 "max_detections": "5",
                 "iou_threshold": "0.4",
                 "use_half_precision": "false",
                 "device": "auto",
             },
-            version="2.0",
+            version="3.0",
         )
 
         # Test
@@ -439,17 +481,16 @@ class TestAnalyzeFace:
         assert call_args[1]["conf"] == 0.7
         assert call_args[1]["iou"] == 0.4
         assert call_args[1]["max_det"] == 5
-        assert call_args[1]["device"] == "cuda"
         assert call_args[1]["half"] is False
         assert call_args[1]["verbose"] is False
 
         # Check result metadata includes config info
-        assert result.metadata["model"] == "yolo11s.pt"
-        assert result.metadata["device_used"] == "cuda"
+        assert result.metadata["model"] == "AdamCodd/YOLOv11n-face-detection:model.pt"
         assert result.metadata["confidence_threshold"] == "0.7"
         assert result.metadata["max_detections"] == "5"
         assert result.metadata["iou_threshold"] == "0.4"
         assert result.metadata["half_precision"] == "False"
+        assert result.metadata["detection_type"] == "face"
 
 
 class TestAnalyzeImage:

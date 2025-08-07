@@ -40,7 +40,7 @@ def analyze_command(
     stages: deduplication, quality assessment, and face detection. Results are
     cached for future runs.
 
-    Face detection uses YOLO11 to identify people in images. On first run, it will
+    Face detection uses a specialized YOLO11 face model. On first run, it will
     download the model weights (~12MB) which are cached for future use.
     """
     input_path = Path(input_dir)
@@ -121,7 +121,7 @@ def _add_stage_columns(table: Table, stage: AnalysisStage) -> None:
         table.add_column("Brightness", justify="center", width=10, style="bold")
         table.add_column("Contrast", justify="center", width=8, style="bold")
     elif stage == AnalysisStage.FACE:
-        width = 12  # For "X people" or "none"
+        width = 20  # For "X faces (best: 0.920)" or "2 low (0.400<0.500)"
         table.add_column(stage.value.title(), justify="center", width=width)
     else:
         width = 12  # Default
@@ -259,7 +259,7 @@ def _format_stage_result(stage_result: StageResult) -> str:
     elif stage_result.stage == AnalysisStage.QUALITY:
         return _format_quality_result(stage_result)
     elif stage_result.stage == AnalysisStage.FACE:
-        return _format_face_result(stage_result)
+        return format_face_result(stage_result)
     else:
         # Fallback to emoji for unknown stages
         return _format_result_status(stage_result.result)
@@ -431,22 +431,41 @@ def _format_quality_metrics(
     return sharpness_str, brightness_str, contrast_str
 
 
-def _format_face_result(stage_result: StageResult) -> str:
-    """Format face detection result with people count."""
+def format_face_result(stage_result: StageResult) -> str:
+    """Format face detection result with face count and confidence info."""
     if stage_result.result == AnalysisResult.PASS:
-        # Show face/people count only
         if stage_result.metadata:
             face_count = stage_result.metadata.get("face_count", "0")
             count = int(face_count) if face_count != "0" else 0
+            highest_confidence = stage_result.metadata.get(
+                "highest_confidence", "0.000"
+            )
+
             if count == 1:
-                return "[green]1 person[/green]"
+                return f"[green]1 face ({highest_confidence})[/green]"
             elif count > 1:
-                return f"[green]{count} people[/green]"
+                return f"[green]{count} faces (best: {highest_confidence})[/green]"
             else:
                 return "[green]detected[/green]"
         return "[green]detected[/green]"
     elif stage_result.result == AnalysisResult.FAIL:
-        return "[red]none[/red]"  # No people detected
+        if stage_result.metadata:
+            face_count = stage_result.metadata.get("face_count", "0")
+            count = int(face_count) if face_count != "0" else 0
+
+            if count > 0:
+                # Faces detected but confidence too low
+                highest_confidence = stage_result.metadata.get(
+                    "highest_confidence", "0.000"
+                )
+                confidence_threshold = stage_result.metadata.get(
+                    "confidence_threshold", "0.500"
+                )
+                return f"[red]{count} low ({highest_confidence}<{confidence_threshold})[/red]"
+            else:
+                # No faces detected at all
+                return "[red]none[/red]"
+        return "[red]none[/red]"
     else:
         return "[yellow]skip[/yellow]"
 

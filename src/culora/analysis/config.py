@@ -22,13 +22,14 @@ STAGE_CONFIGS: dict[AnalysisStage, dict[str, Any]] = {
     AnalysisStage.FACE: {
         "config": {
             "confidence_threshold": "0.5",
-            "model_name": "yolo11n.pt",
+            "model_repo": "AdamCodd/YOLOv11n-face-detection",
+            "model_filename": "model.pt",
             "max_detections": "10",
             "iou_threshold": "0.5",
             "use_half_precision": "true",
             "device": "auto",
         },
-        "version": "2.0",
+        "version": "3.0",
     },
 }
 

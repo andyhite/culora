@@ -59,22 +59,23 @@ For each analysis stage, we evaluated libraries based on:
 **Alternatives Considered**: PyIQA, BRISQUE, custom NumPy implementations
 **Decision Rationale**: OpenCV provides fast, reliable quality metrics with minimal dependencies, perfect for CLI batch processing.
 
-### Face Detection: YOLO11 (Ultralytics)
+### Face Detection: YOLO11 Face-Specific Model (AdamCodd/YOLOv11n-face-detection)
 
-**Selected Library**: `ultralytics` 8.3.0+
+**Selected Library**: `ultralytics` 8.3.0+ with `huggingface_hub` 0.34.0+
 
-- **Installation**: `pip install ultralytics`
+- **Installation**: `pip install ultralytics huggingface_hub`
 - **Dependencies**: PyTorch, torchvision (automatically managed)
-- **Model**: YOLO11 nano (~12MB download on first use)
-- **Performance**: High-speed person detection with automatic device optimization
+- **Model**: AdamCodd/YOLOv11n-face-detection from Hugging Face (~12MB download on first use)
+- **Performance**: High-speed dedicated face detection with automatic device optimization
 - **Configuration**:
-  - Model: yolo11n.pt (nano version for speed)
-  - Detection: Person class (class ID 0) as proxy for face detection
-  - Confidence threshold: Default YOLO confidence filtering
-- **Output**: Person count, detection confidence per person, bounding boxes
+  - Model: AdamCodd/YOLOv11n-face-detection (94.2% AP on WIDERFACE easy)
+  - Detection: Direct face detection (no class filtering needed)
+  - Confidence threshold: 0.5 (configurable)
+  - Device auto-detection: CUDA, MPS, or CPU
+- **Output**: Face count, detection confidence per face, bounding boxes
 
-**Alternatives Considered**: MediaPipe BlazeFace, OpenCV YuNet, YOLOv8, face_recognition, RetinaFace, MTCNN
-**Decision Rationale**: YOLO11 provides excellent person detection accuracy, automatic device acceleration, and clean integration with the ultralytics ecosystem. Person detection serves as an effective proxy for face detection in LoRA training contexts.
+**Alternatives Considered**: MediaPipe BlazeFace, OpenCV YuNet, YOLOv8 person detection, face_recognition, RetinaFace, MTCNN
+**Decision Rationale**: Specialized face detection model provides superior accuracy for faces compared to person detection proxy. YOLO11 face model offers excellent performance (94.2% AP on WIDERFACE), automatic device acceleration, and seamless integration with the ultralytics ecosystem while being specifically trained for face detection tasks.
 
 ## Performance Characteristics
 
@@ -114,7 +115,9 @@ ANALYSIS_CONFIG = {
     },
     "face_detection": {
         "confidence_threshold": 0.5,
-        "model_selection": 1
+        "model_repo": "AdamCodd/YOLOv11n-face-detection",
+        "model_filename": "model.pt",
+        "device": "auto"
     }
 }
 ```
@@ -135,6 +138,7 @@ These libraries will be added to `pyproject.toml`:
 imagehash = "^4.3.2"
 opencv-python = "^4.9.0"
 ultralytics = "^8.3.0"
+huggingface_hub = "^0.34.0"
 ```
 
 ## Future Considerations
@@ -148,9 +152,9 @@ ultralytics = "^8.3.0"
 
 ### Potential Upgrades
 
-- **Dedicated face detection**: Consider specialized face detection models for higher precision
 - **Custom quality models**: Train domain-specific quality assessment models
 - **GPU memory management**: Optimize VRAM usage for large batch processing
+- **Alternative face models**: Evaluate other face detection models for specific use cases
 
 ---
 

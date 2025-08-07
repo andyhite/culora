@@ -13,6 +13,9 @@ import cv2
 import imagehash
 import numpy as np
 import torch
+from huggingface_hub.file_download import (
+    hf_hub_download,  # type: ignore[import-untyped]
+)
 from PIL import Image
 from rich.console import Console
 from rich.progress import (
@@ -70,23 +73,57 @@ def detect_optimal_device() -> str:
         return "cpu"
 
 
-def get_cached_yolo_model(model_name: str, models_dir: Path) -> Any:
-    """Get or create a cached YOLO model.
+def get_cached_yolo_model(model_identifier: str, models_dir: Path | None = None) -> Any:
+    """Get or create a cached YOLO model from local file or Hugging Face.
 
     Args:
-        model_name: Name of the YOLO model file (e.g., 'yolo11n.pt')
-        models_dir: Directory where models are stored
+        model_identifier: Either a model filename (e.g., 'yolo11n.pt') or
+                         HF repo format (e.g., 'AdamCodd/YOLOv11n-face-detection:model.pt')
+        models_dir: Directory where local models are stored (for local models only)
 
     Returns:
         Cached or newly created YOLO model instance
     """
-    cache_key = f"yolo_{model_name}"
+    cache_key = f"yolo_{model_identifier.replace('/', '_').replace(':', '_')}"
 
     if cache_key not in _model_cache:
-        model_path = models_dir / model_name
+        if ":" in model_identifier:
+            # Hugging Face format: repo_id:filename
+            repo_id, filename = model_identifier.split(":", 1)
+            model_path = hf_hub_download(repo_id=repo_id, filename=filename)
+        else:
+            # Local model file
+            if models_dir is None:
+                models_dir = get_models_dir()
+            model_path = models_dir / model_identifier
+
         _model_cache[cache_key] = YOLO(str(model_path))
 
     return _model_cache[cache_key]
+
+
+def get_face_model_identifier(stage_config: StageConfig | None) -> str:
+    """Get the model identifier for face detection from config.
+
+    Args:
+        stage_config: Face detection stage configuration
+
+    Returns:
+        Model identifier string in appropriate format
+    """
+    if not stage_config or not stage_config.config:
+        # Fallback to default Hugging Face model
+        return "AdamCodd/YOLOv11n-face-detection:model.pt"
+
+    model_repo = stage_config.config.get("model_repo")
+    model_filename = stage_config.config.get("model_filename", "model.pt")
+
+    if model_repo:
+        # Hugging Face model
+        return f"{model_repo}:{model_filename}"
+    else:
+        # Legacy local model fallback
+        return stage_config.config.get("model_name", "yolo11n.pt")
 
 
 def _initialize_stage_analyzers() -> None:
@@ -627,9 +664,9 @@ def analyze_quality(
 def analyze_face(
     image_path: Path, stage_config: StageConfig | None = None
 ) -> StageResult:
-    """Analyze image for face detection using YOLO11.
+    """Analyze image for face detection using specialized YOLO11 face model.
 
-    Uses YOLO11 to detect people in images as a proxy for face detection.
+    Uses AdamCodd/YOLOv11n-face-detection model for direct face detection.
     Based on research documented in docs/analysis-libraries.md.
 
     Args:
@@ -637,7 +674,7 @@ def analyze_face(
         stage_config: Configuration for face detection parameters.
 
     Returns:
-        Face detection analysis result with people count and confidence.
+        Face detection analysis result with face count and confidence.
     """
     try:
         # Extract configuration parameters
@@ -645,7 +682,6 @@ def analyze_face(
             confidence_threshold = float(
                 stage_config.config.get("confidence_threshold", "0.5")
             )
-            model_name = stage_config.config.get("model_name", "yolo11n.pt")
             max_detections = int(stage_config.config.get("max_detections", "10"))
             iou_threshold = float(stage_config.config.get("iou_threshold", "0.5"))
             use_half_precision = (
@@ -655,7 +691,6 @@ def analyze_face(
         else:
             # Fallback to defaults if no config provided
             confidence_threshold = 0.5
-            model_name = "yolo11n.pt"
             max_detections = 10
             iou_threshold = 0.5
             use_half_precision = True
@@ -667,9 +702,9 @@ def analyze_face(
         else:
             device = device_setting
 
-        # Get or create cached YOLO11 model for person detection
-        models_dir = get_models_dir()
-        model = get_cached_yolo_model(model_name, models_dir)
+        # Get face detection model identifier and load cached model
+        model_identifier = get_face_model_identifier(stage_config)
+        model = get_cached_yolo_model(model_identifier)
 
         # Run inference on the image with optimized parameters
         results: Any = model(  # pyright: ignore[reportUnknownVariableType]
@@ -692,51 +727,76 @@ def analyze_face(
         # Extract detections from the first (and only) result
         result = results[0]  # type: ignore[misc]
 
-        # Filter for person class (class_id = 0 in COCO dataset)
-        person_detections: list[dict[str, Any]] = []
+        # Extract all face detections (specialized face model detects faces directly)
+        face_detections: list[dict[str, Any]] = []
         if hasattr(result, "boxes") and result.boxes is not None:  # type: ignore[misc]
             for box in result.boxes:  # type: ignore[misc]
-                # Check if this detection is a person (class 0)
-                if hasattr(box, "cls") and hasattr(box, "conf"):  # type: ignore[misc]
-                    cls_tensor = box.cls  # type: ignore[misc]
+                # Face detection model returns faces directly - no class filtering needed
+                if hasattr(box, "conf"):  # type: ignore[misc]
                     conf_tensor = box.conf  # type: ignore[misc]
-                    if len(cls_tensor) > 0 and int(cls_tensor[0]) == 0:  # type: ignore[misc] # Person class
+                    if len(conf_tensor) > 0:  # type: ignore[misc]
                         confidence = float(conf_tensor[0])  # type: ignore[misc]
-                        person_detections.append(
+                        face_detections.append(
                             {
                                 "confidence": confidence,
-                                "class_name": "person",
+                                "class_name": "face",
                             }
                         )
 
-        face_count = len(person_detections)
-        confidences: list[float] = [det["confidence"] for det in person_detections]
-        avg_confidence = 0.0
+        face_count = len(face_detections)
 
         if face_count > 0:
+            # Sort faces by confidence (highest first)
+            face_detections.sort(key=lambda x: x["confidence"], reverse=True)
+            confidences: list[float] = [det["confidence"] for det in face_detections]
+
+            # Use highest confidence face as the primary indicator
+            highest_confidence = confidences[0]
             avg_confidence = sum(confidences) / face_count
-            analysis_result = AnalysisResult.PASS
-            reason = f"Detected {face_count} person(s) with average confidence {avg_confidence:.3f}"
+
+            # Pass if the highest confidence face meets our threshold
+            if highest_confidence >= confidence_threshold:
+                analysis_result = AnalysisResult.PASS
+                if face_count == 1:
+                    reason = f"Detected 1 face with confidence {highest_confidence:.3f}"
+                else:
+                    reason = f"Detected {face_count} faces (best: {highest_confidence:.3f}, avg: {avg_confidence:.3f})"
+            else:
+                # Even though we detected faces, the best one doesn't meet our confidence threshold
+                analysis_result = AnalysisResult.FAIL
+                reason = f"Detected {face_count} face(s) but highest confidence {highest_confidence:.3f} below threshold {confidence_threshold:.3f}"
         else:
+            confidences = []
+            avg_confidence = 0.0
             analysis_result = AnalysisResult.FAIL
-            reason = "No people detected in image"
+            reason = "No faces detected in image"
+
+        # Build metadata with highest confidence info if faces were detected
+        metadata = {
+            "face_count": str(face_count),
+            "confidence_scores": ",".join(f"{conf:.3f}" for conf in confidences),
+            "average_confidence": f"{avg_confidence:.3f}",
+            "model": model_identifier,
+            "detection_type": "face",
+            "device_used": device,
+            "confidence_threshold": str(confidence_threshold),
+            "max_detections": str(max_detections),
+            "iou_threshold": str(iou_threshold),
+            "half_precision": str(use_half_precision),
+        }
+
+        # Add highest confidence info if faces were detected
+        if face_count > 0:
+            metadata["highest_confidence"] = f"{confidences[0]:.3f}"
+            metadata["confidence_threshold_met"] = str(
+                confidences[0] >= confidence_threshold
+            )
 
         return StageResult(
             stage=AnalysisStage.FACE,
             result=analysis_result,
             reason=reason,
-            metadata={
-                "face_count": str(face_count),
-                "confidence_scores": ",".join(f"{conf:.3f}" for conf in confidences),
-                "average_confidence": f"{avg_confidence:.3f}",
-                "model": model_name,
-                "detection_type": "person",
-                "device_used": device,
-                "confidence_threshold": str(confidence_threshold),
-                "max_detections": str(max_detections),
-                "iou_threshold": str(iou_threshold),
-                "half_precision": str(use_half_precision),
-            },
+            metadata=metadata,
         )
 
     except Exception as e:
