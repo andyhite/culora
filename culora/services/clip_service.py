@@ -13,9 +13,9 @@ from transformers import CLIPModel, CLIPProcessor
 
 from culora.core import CuLoRAError
 from culora.domain import CuLoRAConfig
-from culora.domain.enums.clip import ClusteringMethod, SimilarityMetric
 from culora.domain.models.clip import (
     BatchSemanticResult,
+    ClusteringMethod,
     ClusteringResult,
     DiversityAnalysis,
     EmbeddingSimilarity,
@@ -24,6 +24,7 @@ from culora.domain.models.clip import (
     SemanticEmbedding,
     SemanticSelectionCriteria,
     SemanticSelectionResult,
+    SimilarityMetric,
 )
 from culora.services.device_service import get_device_service
 

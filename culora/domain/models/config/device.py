@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 
-from culora.domain.enums.device_types import DeviceType
+from culora.domain.models.device import DeviceType
 
 
 class DeviceConfig(BaseModel):

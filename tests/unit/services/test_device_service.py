@@ -6,9 +6,8 @@ import pytest
 from rich.console import Console
 
 from culora.core.exceptions import DeviceError
-from culora.domain.enums.device_types import DeviceType
 from culora.domain.models import CuLoRAConfig
-from culora.domain.models.device import Device
+from culora.domain.models.device import Device, DeviceType
 from culora.domain.models.memory import Memory
 from culora.services.device_service import DeviceService
 

@@ -7,7 +7,7 @@ import pytest
 
 from culora.core.exceptions import InvalidConfigError, MissingConfigError
 from culora.domain import CuLoRAConfig
-from culora.domain.enums.device_types import DeviceType
+from culora.domain.models.device import DeviceType
 from culora.services.config_service import ConfigService, get_config_service
 
 from ...helpers import TempFileHelper, patch_environment

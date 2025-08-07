@@ -1,18 +1,10 @@
 """Pose estimation domain models."""
 
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
-
-from culora.domain.enums.pose import (
-    ArmPosition,
-    LegPosition,
-    PoseCategory,
-    PoseDynamism,
-    PoseOrientation,
-    PoseSymmetry,
-)
 
 
 class PoseLandmark(BaseModel):
@@ -35,6 +27,67 @@ class PoseVector(BaseModel):
     confidence: float = Field(
         description="Overall confidence in pose detection", ge=0.0, le=1.0
     )
+
+
+class PoseCategory(str, Enum):
+    """Pose categories based on body position and posture."""
+
+    STANDING = "standing"
+    SITTING = "sitting"
+    LYING = "lying"
+    KNEELING = "kneeling"
+    CROUCHING = "crouching"
+    UNKNOWN = "unknown"
+
+
+class PoseOrientation(str, Enum):
+    """Body orientation relative to camera."""
+
+    FRONTAL = "frontal"
+    PROFILE = "profile"
+    THREE_QUARTER = "three_quarter"
+    BACK = "back"
+    UNKNOWN = "unknown"
+
+
+class ArmPosition(str, Enum):
+    """Arm positioning categories."""
+
+    RAISED = "raised"
+    EXTENDED = "extended"
+    CROSSED = "crossed"
+    AT_SIDES = "at_sides"
+    ON_HIPS = "on_hips"
+    BEHIND_BACK = "behind_back"
+    UNKNOWN = "unknown"
+
+
+class LegPosition(str, Enum):
+    """Leg positioning categories."""
+
+    STRAIGHT = "straight"
+    BENT = "bent"
+    CROSSED = "crossed"
+    SPREAD = "spread"
+    ONE_RAISED = "one_raised"
+    UNKNOWN = "unknown"
+
+
+class PoseSymmetry(str, Enum):
+    """Pose symmetry classification."""
+
+    SYMMETRIC = "symmetric"
+    ASYMMETRIC = "asymmetric"
+    UNKNOWN = "unknown"
+
+
+class PoseDynamism(str, Enum):
+    """Pose dynamism level."""
+
+    STATIC = "static"
+    DYNAMIC = "dynamic"
+    ACTION = "action"
+    UNKNOWN = "unknown"
 
 
 class PoseClassification(BaseModel):

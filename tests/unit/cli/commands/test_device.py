@@ -7,7 +7,8 @@ from typer.testing import CliRunner
 
 from culora.cli.commands.device import device_app
 from culora.core import DeviceError
-from culora.domain import Device, DeviceType, Memory
+from culora.domain import Device, Memory
+from culora.domain.models.device import DeviceType
 
 
 class TestDeviceCommands:

@@ -7,15 +7,15 @@ import pytest
 from PIL import Image
 
 from culora.domain import CuLoRAConfig
-from culora.domain.enums.composition import (
+from culora.domain.models.composition import (
     BackgroundComplexity,
     CameraAngle,
+    CompositionAnalysis,
     FacialExpression,
     LightingQuality,
     SceneType,
     ShotType,
 )
-from culora.domain.models.composition import CompositionAnalysis
 from culora.services.composition_service import (
     CompositionService,
     CompositionServiceError,

@@ -10,12 +10,13 @@ from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 from rich.table import Table
 
 from culora.cli.display.console import console
-from culora.domain.enums.clip import ClusteringMethod, SimilarityMetric
 from culora.domain.models.clip import (
     BatchSemanticResult,
+    ClusteringMethod,
     ClusteringResult,
     DiversityAnalysis,
     SemanticAnalysisResult,
+    SimilarityMetric,
 )
 from culora.services.clip_service import CLIPService, CLIPServiceError
 from culora.services.config_service import ConfigService

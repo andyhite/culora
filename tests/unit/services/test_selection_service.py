@@ -10,21 +10,26 @@ import pytest
 from culora.core.exceptions import (
     SelectionInsufficientDataError,
 )
-from culora.domain.enums.composition import (
+from culora.domain.models.clip import SemanticEmbedding
+from culora.domain.models.composition import (
     BackgroundComplexity,
     CameraAngle,
+    CompositionAnalysis,
     FacialExpression,
     LightingQuality,
     SceneType,
     ShotType,
 )
-from culora.domain.models.clip import SemanticEmbedding
-from culora.domain.models.composition import CompositionAnalysis
 from culora.domain.models.config.selection import SelectionConfig, SelectionConstraints
 from culora.domain.models.pose import (
+    ArmPosition,
+    LegPosition,
     PoseAnalysis,
+    PoseCategory,
     PoseClassification,
     PoseLandmark,
+    PoseOrientation,
+    PoseSymmetry,
     PoseVector,
 )
 from culora.domain.models.quality import QualityScore
@@ -101,13 +106,8 @@ class TestSelectionService:
     @pytest.fixture
     def pose_analysis(self) -> PoseAnalysis:
         """Create a sample pose analysis."""
-        from culora.domain.enums.pose import (
-            ArmPosition,
-            LegPosition,
-            PoseCategory,
+        from culora.domain.models.pose import (
             PoseDynamism,
-            PoseOrientation,
-            PoseSymmetry,
         )
 
         # Create mock landmarks
@@ -190,13 +190,8 @@ class TestSelectionService:
             )
 
             # Vary pose vectors for diversity
-            from culora.domain.enums.pose import (
-                ArmPosition,
-                LegPosition,
-                PoseCategory,
+            from culora.domain.models.pose import (
                 PoseDynamism,
-                PoseOrientation,
-                PoseSymmetry,
             )
 
             pose_categories = [

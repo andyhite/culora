@@ -5,7 +5,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from culora.domain.enums.clip import CLIPModelType, ClusteringMethod, SimilarityMetric
+from culora.domain.models.clip import CLIPModelType, ClusteringMethod, SimilarityMetric
 from culora.utils.app_dir import get_models_dir
 
 

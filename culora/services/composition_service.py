@@ -14,18 +14,16 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from culora.core import CuLoRAError
 from culora.domain import CuLoRAConfig
-from culora.domain.enums.composition import (
+from culora.domain.models.composition import (
     BackgroundComplexity,
+    BatchCompositionResult,
     CameraAngle,
+    CompositionAnalysis,
+    CompositionResult,
     FacialExpression,
     LightingQuality,
     SceneType,
     ShotType,
-)
-from culora.domain.models.composition import (
-    BatchCompositionResult,
-    CompositionAnalysis,
-    CompositionResult,
 )
 from culora.domain.models.config.composition import COMPOSITION_ANALYSIS_PROMPT
 from culora.services.device_service import get_device_service

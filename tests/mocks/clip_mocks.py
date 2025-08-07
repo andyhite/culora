@@ -8,15 +8,16 @@ import numpy as np
 import torch
 from PIL import Image
 
-from culora.domain.enums.clip import ClusteringMethod, SimilarityMetric
 from culora.domain.models.clip import (
     BatchSemanticResult,
+    ClusteringMethod,
     ClusteringResult,
     DiversityAnalysis,
     EmbeddingSimilarity,
     SemanticAnalysisResult,
     SemanticCluster,
     SemanticEmbedding,
+    SimilarityMetric,
 )
 
 

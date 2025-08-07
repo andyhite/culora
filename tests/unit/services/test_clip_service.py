@@ -11,8 +11,12 @@ from PIL import Image
 from sklearn.exceptions import ConvergenceWarning
 
 from culora.domain import CuLoRAConfig
-from culora.domain.enums.clip import CLIPModelType, ClusteringMethod, SimilarityMetric
-from culora.domain.models.clip import SemanticSelectionCriteria
+from culora.domain.models.clip import (
+    CLIPModelType,
+    ClusteringMethod,
+    SemanticSelectionCriteria,
+    SimilarityMetric,
+)
 from culora.services.clip_service import (
     CLIPService,
     CLIPServiceError,

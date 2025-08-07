@@ -14,26 +14,24 @@ from sklearn.metrics import silhouette_score
 
 from culora.core.exceptions import CuLoRAError
 from culora.domain import CuLoRAConfig
-from culora.domain.enums.pose import (
-    ArmPosition,
-    LegPosition,
-    PoseCategory,
-    PoseDynamism,
-    PoseOrientation,
-    PoseSymmetry,
-)
 from culora.domain.models.pose import (
+    ArmPosition,
     BatchPoseResult,
+    LegPosition,
     PoseAnalysis,
     PoseAnalysisResult,
+    PoseCategory,
     PoseClassification,
     PoseCluster,
     PoseClusteringResult,
     PoseDiversityAnalysis,
+    PoseDynamism,
     PoseLandmark,
+    PoseOrientation,
     PoseSelectionCriteria,
     PoseSelectionResult,
     PoseSimilarity,
+    PoseSymmetry,
     PoseVector,
 )
 

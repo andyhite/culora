@@ -2,7 +2,7 @@
 
 import pytest
 
-from culora.domain.enums.composition import SceneType, ShotType
+from culora.domain.models.composition import SceneType, ShotType
 from culora.domain.models.config.selection import (
     DistributionTarget,
     DiversitySettings,

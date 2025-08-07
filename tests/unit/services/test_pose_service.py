@@ -8,8 +8,11 @@ import pytest
 from PIL import Image
 
 from culora.domain import CuLoRAConfig
-from culora.domain.enums.pose import PoseCategory, PoseOrientation
-from culora.domain.models.pose import PoseSelectionCriteria
+from culora.domain.models.pose import (
+    PoseCategory,
+    PoseOrientation,
+    PoseSelectionCriteria,
+)
 from culora.services.pose_service import (
     PoseClusteringError,
     PoseService,

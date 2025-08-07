@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from culora.domain.enums.device_types import DeviceType
 from culora.domain.models import (
     CuLoRAConfig,
     DeviceConfig,
@@ -10,6 +9,7 @@ from culora.domain.models import (
     ImageConfig,
     QualityConfig,
 )
+from culora.domain.models.device import DeviceType
 
 
 class ConfigBuilder:

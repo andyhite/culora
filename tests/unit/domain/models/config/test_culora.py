@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from culora.domain.enums.device_types import DeviceType
 from culora.domain.models.config import CuLoRAConfig, DeviceConfig
+from culora.domain.models.device import DeviceType
 from culora.utils.app_dir import get_models_dir
 
 from .....helpers import AssertionHelpers, ConfigBuilder

@@ -3,8 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from culora.domain.enums.device_types import DeviceType
 from culora.domain.models.config.device import DeviceConfig
+from culora.domain.models.device import DeviceType
 
 
 class TestDeviceConfig:

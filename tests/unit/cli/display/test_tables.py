@@ -8,7 +8,8 @@ from culora.cli.display.tables import (
     display_key_value_table,
     display_memory_table,
 )
-from culora.domain import Device, DeviceType, Memory
+from culora.domain import Device, Memory
+from culora.domain.models.device import DeviceType
 from tests.helpers import ConfigBuilder
 
 

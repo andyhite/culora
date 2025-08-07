@@ -1,10 +1,17 @@
 """Device domain model for CuLoRA."""
 
 from dataclasses import dataclass
-
-from culora.domain.enums.device_types import DeviceType
+from enum import Enum
 
 from .memory import Memory
+
+
+class DeviceType(str, Enum):
+    """Supported device types for AI model execution."""
+
+    CUDA = "cuda"
+    MPS = "mps"
+    CPU = "cpu"
 
 
 @dataclass

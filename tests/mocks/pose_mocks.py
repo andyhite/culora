@@ -5,25 +5,23 @@ from unittest.mock import MagicMock
 
 import numpy as np
 
-from culora.domain.enums.pose import (
-    ArmPosition,
-    LegPosition,
-    PoseCategory,
-    PoseDynamism,
-    PoseOrientation,
-    PoseSymmetry,
-)
 from culora.domain.models.pose import (
+    ArmPosition,
     BatchPoseResult,
+    LegPosition,
     PoseAnalysis,
     PoseAnalysisResult,
+    PoseCategory,
     PoseClassification,
     PoseCluster,
     PoseClusteringResult,
     PoseDiversityAnalysis,
+    PoseDynamism,
     PoseLandmark,
+    PoseOrientation,
     PoseSelectionResult,
     PoseSimilarity,
+    PoseSymmetry,
     PoseVector,
 )
 

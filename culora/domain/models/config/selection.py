@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
-from culora.domain.enums.composition import (
+from culora.domain.models.composition import (
     SceneType,
     ShotType,
 )
