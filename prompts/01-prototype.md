@@ -15,7 +15,7 @@
 
 ## Epic 2: End-to-End CLI Command Flow
 
-- **US2.1:** As a user, I want to analyze a folder of images with `culora analyze <input_dir>`, so I can curate my dataset.
+- ~~**US2.1:** As a user, I want to analyze a folder of images with `culora analyze <input_dir>`, so I can curate my dataset.~~
 - **US2.2:** As a user, I want to see a Rich progress bar during analysis so I know it’s working.
 - **US2.3:** As a user, I want to run `culora select <output_dir>` and have only curated images copied to a new folder.
 - **US2.4:** As a user, I want a summary table after selection, showing how many images were found, selected, skipped, and why.
