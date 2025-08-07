@@ -1,0 +1,15 @@
+{
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.diagnosticMode": "workspace",
+    "[python]": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll": "explicit"
+        },
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
+    "codeLens.enableCodeLens": true,
+    "codeLens.filterImports": false,
+    "codeLens.filterDefinitions": true
+}

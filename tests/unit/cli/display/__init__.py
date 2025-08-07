@@ -1,1 +1,0 @@
-"""CLI display tests package."""

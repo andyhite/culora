@@ -1,1 +1,0 @@
-"""CLI validation tests package."""
