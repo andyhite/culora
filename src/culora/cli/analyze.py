@@ -110,11 +110,11 @@ def _display_analysis_summary(analysis: DirectoryAnalysis) -> None:
             table.add_column(stage.value.title(), justify="center", width=width)
         elif stage == AnalysisStage.QUALITY:
             # Add separate columns for each quality metric
-            table.add_column("Sharpness", justify="center", width=15, style="bold")
-            table.add_column("Brightness", justify="center", width=20, style="bold")
-            table.add_column("Contrast", justify="center", width=15, style="bold")
+            table.add_column("Sharpness", justify="center", width=8, style="bold")
+            table.add_column("Brightness", justify="center", width=10, style="bold")
+            table.add_column("Contrast", justify="center", width=8, style="bold")
         elif stage == AnalysisStage.FACE:
-            width = 10  # For "count@conf%"
+            width = 12  # For "X people" or "none"
             table.add_column(stage.value.title(), justify="center", width=width)
         else:
             width = 12  # Default
@@ -270,7 +270,7 @@ def _format_quality_result(stage_result: StageResult) -> str:
 def _format_quality_metrics(
     stage_result: StageResult, stage_config: StageConfig | None = None
 ) -> tuple[str, str, str]:
-    """Format quality metrics into separate columns with textual descriptions and scores.
+    """Format quality metrics into separate columns with human-readable descriptions.
 
     Returns:
         Tuple of (sharpness_formatted, brightness_formatted, contrast_formatted)
@@ -322,7 +322,7 @@ def _format_quality_metrics(
                 else:
                     s_text = "Soft"
 
-            sharpness_str = f"[{s_color}]{s_text} ({s_val:.0f}/{sharpness_threshold:.0f}+)[/{s_color}]"
+            sharpness_str = f"[{s_color}]{s_text}[/{s_color}]"
         else:
             sharpness_str = "[dim]?[/dim]"
 
@@ -339,7 +339,7 @@ def _format_quality_metrics(
             else:  # > brightness_max
                 b_text = "Bright"
 
-            brightness_str = f"[{b_color}]{b_text} ({b_val:.0f} of {brightness_min:.0f}-{brightness_max:.0f})[/{b_color}]"
+            brightness_str = f"[{b_color}]{b_text}[/{b_color}]"
         else:
             brightness_str = "[dim]?[/dim]"
 
@@ -360,7 +360,7 @@ def _format_quality_metrics(
                 else:
                     c_text = "Low"
 
-            contrast_str = f"[{c_color}]{c_text} ({c_val:.0f}/{contrast_threshold:.0f}+)[/{c_color}]"
+            contrast_str = f"[{c_color}]{c_text}[/{c_color}]"
         else:
             contrast_str = "[dim]?[/dim]"
 
@@ -383,22 +383,21 @@ def _format_quality_metrics(
 def _format_face_result(stage_result: StageResult) -> str:
     """Format face detection result with people count."""
     if stage_result.result == AnalysisResult.PASS:
-        # Show face/people count and confidence
+        # Show face/people count only
         if stage_result.metadata:
             face_count = stage_result.metadata.get("face_count", "0")
-            avg_conf = stage_result.metadata.get("average_confidence", "0.000")
-            try:
-                conf_pct = (
-                    f"{float(avg_conf) * 100:.0f}%" if avg_conf != "0.000" else "0%"
-                )
-                return f"[green]{face_count}@{conf_pct}[/green]"
-            except (ValueError, TypeError):
-                return f"[green]{face_count}[/green]"
-        return "[green]PASS[/green]"
+            count = int(face_count) if face_count != "0" else 0
+            if count == 1:
+                return "[green]1 person[/green]"
+            elif count > 1:
+                return f"[green]{count} people[/green]"
+            else:
+                return "[green]detected[/green]"
+        return "[green]detected[/green]"
     elif stage_result.result == AnalysisResult.FAIL:
-        return "[red]0[/red]"  # No people detected
+        return "[red]none[/red]"  # No people detected
     else:
-        return "[yellow]SKIP[/yellow]"
+        return "[yellow]skip[/yellow]"
 
 
 def register_command(app: typer.Typer) -> None:

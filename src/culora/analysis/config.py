@@ -30,8 +30,15 @@ def get_face_config() -> StageConfig:
     """Get current face detection stage configuration."""
     return StageConfig(
         stage=AnalysisStage.FACE,
-        config={"confidence_threshold": "0.5", "model_selection": "1"},
-        version="1.0",
+        config={
+            "confidence_threshold": "0.5",
+            "model_name": "yolo11n.pt",
+            "max_detections": "10",
+            "iou_threshold": "0.5",
+            "use_half_precision": "true",
+            "device": "auto",
+        },
+        version="2.0",
     )
 
 

@@ -318,7 +318,7 @@ class TestAnalyzeFace:
         assert result.metadata["face_count"] == "2"
         assert result.metadata["confidence_scores"] == "0.850,0.920"
         assert result.metadata["average_confidence"] == "0.885"
-        assert result.metadata["model"] == "yolo11n"
+        assert result.metadata["model"] == "yolo11n.pt"
         assert result.metadata["detection_type"] == "person"
 
     @patch("culora.analysis.analyzer.YOLO")
@@ -389,6 +389,65 @@ class TestAnalyzeFace:
         assert (
             "Failed to analyze face detection: YOLO inference failed" in result.reason
         )
+
+    @patch("culora.analysis.analyzer.detect_optimal_device")
+    @patch("culora.analysis.analyzer.YOLO")
+    def test_analyze_face_with_custom_config(
+        self, mock_yolo: Any, mock_device_detect: Any
+    ) -> None:
+        """Test face analysis with custom configuration parameters."""
+        from culora.models.analysis import StageConfig
+
+        # Setup mocks
+        mock_device_detect.return_value = "cuda"
+        mock_model = MagicMock()
+        mock_yolo.return_value = mock_model
+
+        # Mock YOLO results
+        mock_box = MagicMock()
+        mock_box.cls = [0]  # Person class
+        mock_box.conf = [0.75]
+
+        mock_result = MagicMock()
+        mock_result.boxes = [mock_box]
+        mock_model.return_value = [mock_result]
+
+        # Create custom config
+        custom_config = StageConfig(
+            stage=AnalysisStage.FACE,
+            config={
+                "confidence_threshold": "0.7",
+                "model_name": "yolo11s.pt",
+                "max_detections": "5",
+                "iou_threshold": "0.4",
+                "use_half_precision": "false",
+                "device": "auto",
+            },
+            version="2.0",
+        )
+
+        # Test
+        image_path = Path("/fake/path/image.jpg")
+        result = analyze_face(image_path, custom_config)
+
+        # Verify YOLO was called with correct parameters
+        mock_model.assert_called_once()
+        call_args = mock_model.call_args
+        assert call_args[0][0] == str(image_path)  # First positional arg
+        assert call_args[1]["conf"] == 0.7
+        assert call_args[1]["iou"] == 0.4
+        assert call_args[1]["max_det"] == 5
+        assert call_args[1]["device"] == "cuda"
+        assert call_args[1]["half"] is False
+        assert call_args[1]["verbose"] is False
+
+        # Check result metadata includes config info
+        assert result.metadata["model"] == "yolo11s.pt"
+        assert result.metadata["device_used"] == "cuda"
+        assert result.metadata["confidence_threshold"] == "0.7"
+        assert result.metadata["max_detections"] == "5"
+        assert result.metadata["iou_threshold"] == "0.4"
+        assert result.metadata["half_precision"] == "False"
 
 
 class TestAnalyzeImage:

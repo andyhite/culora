@@ -12,6 +12,7 @@ from typing import Any, cast
 import cv2
 import imagehash
 import numpy as np
+import torch
 from PIL import Image
 from rich.console import Console
 from rich.progress import (
@@ -43,6 +44,24 @@ from culora.utils.cache import (
 from culora.utils.images import find_images
 
 console = Console()
+
+
+def detect_optimal_device() -> str:
+    """Detect the optimal device for YOLO inference.
+
+    Returns:
+        Device string: 'cuda', 'mps', or 'cpu'
+    """
+    try:
+        if torch.cuda.is_available():
+            return "cuda"
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return "mps"
+        else:
+            return "cpu"
+    except Exception:
+        # Fallback to CPU if torch detection fails
+        return "cpu"
 
 
 def analyze_directory(
@@ -457,19 +476,54 @@ def analyze_face(
 
     Args:
         image_path: Path to the image file.
+        stage_config: Configuration for face detection parameters.
 
     Returns:
         Face detection analysis result with people count and confidence.
     """
     try:
-        # Load YOLO11 nano model for person detection
-        # Specifying the full path will download to that directory if not exists
+        # Extract configuration parameters
+        if stage_config and stage_config.config:
+            confidence_threshold = float(
+                stage_config.config.get("confidence_threshold", "0.5")
+            )
+            model_name = stage_config.config.get("model_name", "yolo11n.pt")
+            max_detections = int(stage_config.config.get("max_detections", "10"))
+            iou_threshold = float(stage_config.config.get("iou_threshold", "0.5"))
+            use_half_precision = (
+                stage_config.config.get("use_half_precision", "true").lower() == "true"
+            )
+            device_setting = stage_config.config.get("device", "auto")
+        else:
+            # Fallback to defaults if no config provided
+            confidence_threshold = 0.5
+            model_name = "yolo11n.pt"
+            max_detections = 10
+            iou_threshold = 0.5
+            use_half_precision = True
+            device_setting = "auto"
+
+        # Determine device to use
+        if device_setting == "auto":
+            device = detect_optimal_device()
+        else:
+            device = device_setting
+
+        # Load YOLO11 model for person detection
         models_dir = get_models_dir()
-        model_path = models_dir / "yolo11n.pt"
+        model_path = models_dir / model_name
         model = YOLO(str(model_path))
 
-        # Run inference on the image
-        results = model(str(image_path), verbose=False)  # type: ignore[misc]
+        # Run inference on the image with optimized parameters
+        results: Any = model(  # pyright: ignore[reportUnknownVariableType]
+            str(image_path),
+            conf=confidence_threshold,
+            iou=iou_threshold,
+            max_det=max_detections,
+            device=device,
+            half=use_half_precision,
+            verbose=False,
+        )
 
         if not results:
             return StageResult(
@@ -518,8 +572,13 @@ def analyze_face(
                 "face_count": str(face_count),
                 "confidence_scores": ",".join(f"{conf:.3f}" for conf in confidences),
                 "average_confidence": f"{avg_confidence:.3f}",
-                "model": "yolo11n",
+                "model": model_name,
                 "detection_type": "person",
+                "device_used": device,
+                "confidence_threshold": str(confidence_threshold),
+                "max_detections": str(max_detections),
+                "iou_threshold": str(iou_threshold),
+                "half_precision": str(use_half_precision),
             },
         )
 
