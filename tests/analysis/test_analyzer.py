@@ -282,12 +282,12 @@ class TestAnalyzeQuality:
 class TestAnalyzeFace:
     """Tests for analyze_face function."""
 
-    @patch("culora.analysis.analyzer.YOLO")
-    def test_analyze_face_people_detected(self, mock_yolo: Any) -> None:
+    @patch("culora.analysis.analyzer.get_cached_yolo_model")
+    def test_analyze_face_people_detected(self, mock_get_cached_model: Any) -> None:
         """Test face analysis with people detected using YOLO11."""
         # Setup mocks
         mock_model = MagicMock()
-        mock_yolo.return_value = mock_model
+        mock_get_cached_model.return_value = mock_model
 
         # Mock YOLOv8 results
         mock_box1 = MagicMock()
@@ -321,12 +321,12 @@ class TestAnalyzeFace:
         assert result.metadata["model"] == "yolo11n.pt"
         assert result.metadata["detection_type"] == "person"
 
-    @patch("culora.analysis.analyzer.YOLO")
-    def test_analyze_face_no_people(self, mock_yolo: Any) -> None:
+    @patch("culora.analysis.analyzer.get_cached_yolo_model")
+    def test_analyze_face_no_people(self, mock_get_cached_model: Any) -> None:
         """Test face analysis with no people detected."""
         # Setup mocks
         mock_model = MagicMock()
-        mock_yolo.return_value = mock_model
+        mock_get_cached_model.return_value = mock_model
 
         # Mock YOLOv8 results with no person detections
         mock_result = MagicMock()
@@ -349,11 +349,11 @@ class TestAnalyzeFace:
         assert result.metadata["confidence_scores"] == ""
         assert result.metadata["average_confidence"] == "0.000"
 
-    @patch("culora.analysis.analyzer.YOLO")
-    def test_analyze_face_yolo_error(self, mock_yolo: Any) -> None:
+    @patch("culora.analysis.analyzer.get_cached_yolo_model")
+    def test_analyze_face_yolo_error(self, mock_get_cached_model: Any) -> None:
         """Test face analysis with YOLO error."""
         # Mock YOLO error
-        mock_yolo.side_effect = Exception("YOLO model failed to load")
+        mock_get_cached_model.side_effect = Exception("YOLO model failed to load")
 
         # Test
         image_path = Path("/fake/path/image.jpg")
@@ -368,12 +368,14 @@ class TestAnalyzeFace:
             in result.reason
         )
 
-    @patch("culora.analysis.analyzer.YOLO")
-    def test_analyze_face_yolo_inference_error(self, mock_yolo: Any) -> None:
+    @patch("culora.analysis.analyzer.get_cached_yolo_model")
+    def test_analyze_face_yolo_inference_error(
+        self, mock_get_cached_model: Any
+    ) -> None:
         """Test face analysis with YOLO inference error."""
         # Setup mocks
         mock_model = MagicMock()
-        mock_yolo.return_value = mock_model
+        mock_get_cached_model.return_value = mock_model
 
         # Mock YOLO inference error
         mock_model.side_effect = Exception("YOLO inference failed")
@@ -517,22 +519,25 @@ class TestAnalyzeImage:
         assert mock_analyze_quality.call_args[0][0] == image_file
         assert mock_analyze_face.call_args[0][0] == image_file
 
-    @patch("culora.analysis.analyzer.analyze_deduplication")
+    @patch("culora.analysis.analyzer._stage_analyzers")
     def test_analyze_image_single_stage(
-        self, mock_analyze_deduplication: Any, tmp_path: Path
+        self, mock_stage_analyzers: Any, tmp_path: Path
     ) -> None:
         """Test analyze_image with only deduplication stage."""
         # Create a temporary image file
         image_file = tmp_path / "test.jpg"
         image_file.touch()
 
-        # Mock analysis function
+        # Mock the stage analyzers dispatch table
+        mock_analyze_deduplication = MagicMock()
         mock_result = StageResult(
             stage=AnalysisStage.DEDUPLICATION,
             result=AnalysisResult.PASS,
             reason="Generated hash: abc123",
         )
         mock_analyze_deduplication.return_value = mock_result
+        mock_stage_analyzers.__getitem__.return_value = mock_analyze_deduplication
+        mock_stage_analyzers.__contains__.return_value = True
 
         # Test
         enabled_stages = [AnalysisStage.DEDUPLICATION]

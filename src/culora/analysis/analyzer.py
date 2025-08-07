@@ -45,6 +45,12 @@ from culora.utils.images import find_images
 
 console = Console()
 
+# Global model cache to avoid reloading models for each image
+_model_cache: dict[str, Any] = {}
+
+# Stage analyzer dispatch table
+_stage_analyzers: dict[AnalysisStage, Any] = {}
+
 
 def detect_optimal_device() -> str:
     """Detect the optimal device for YOLO inference.
@@ -62,6 +68,207 @@ def detect_optimal_device() -> str:
     except Exception:
         # Fallback to CPU if torch detection fails
         return "cpu"
+
+
+def get_cached_yolo_model(model_name: str, models_dir: Path) -> Any:
+    """Get or create a cached YOLO model.
+
+    Args:
+        model_name: Name of the YOLO model file (e.g., 'yolo11n.pt')
+        models_dir: Directory where models are stored
+
+    Returns:
+        Cached or newly created YOLO model instance
+    """
+    cache_key = f"yolo_{model_name}"
+
+    if cache_key not in _model_cache:
+        model_path = models_dir / model_name
+        _model_cache[cache_key] = YOLO(str(model_path))
+
+    return _model_cache[cache_key]
+
+
+def _initialize_stage_analyzers() -> None:
+    """Initialize the stage analyzer dispatch table."""
+    if not _stage_analyzers:
+        _stage_analyzers[AnalysisStage.DEDUPLICATION] = analyze_deduplication
+        _stage_analyzers[AnalysisStage.QUALITY] = analyze_quality
+        _stage_analyzers[AnalysisStage.FACE] = analyze_face
+
+
+def _determine_enabled_stages(
+    enable_deduplication: bool, enable_quality: bool, enable_face: bool
+) -> list[AnalysisStage]:
+    """Determine which analysis stages are enabled based on flags.
+
+    Args:
+        enable_deduplication: Whether to run deduplication analysis.
+        enable_quality: Whether to run quality analysis.
+        enable_face: Whether to run face detection analysis.
+
+    Returns:
+        List of enabled analysis stages.
+    """
+    enabled_stages: list[AnalysisStage] = []
+    if enable_deduplication:
+        enabled_stages.append(AnalysisStage.DEDUPLICATION)
+    if enable_quality:
+        enabled_stages.append(AnalysisStage.QUALITY)
+    if enable_face:
+        enabled_stages.append(AnalysisStage.FACE)
+    return enabled_stages
+
+
+def _handle_cache_logic(
+    input_directory: Path,
+    enabled_stages: list[AnalysisStage],
+    stage_configs: list[StageConfig],
+    use_cache: bool,
+) -> tuple[DirectoryAnalysis | None, list[AnalysisStage]]:
+    """Handle cache loading and determine stages that need analysis.
+
+    Args:
+        input_directory: Directory being analyzed.
+        enabled_stages: List of enabled analysis stages.
+        stage_configs: Stage configurations.
+        use_cache: Whether to use cached results.
+
+    Returns:
+        Tuple of (cached_analysis, stages_to_analyze).
+    """
+    if not use_cache:
+        return None, enabled_stages
+
+    cached_analysis = load_analysis_cache(input_directory)
+    stages_to_analyze = get_stages_needing_analysis(
+        cached_analysis, enabled_stages, stage_configs, input_directory
+    )
+
+    if not stages_to_analyze and cached_analysis:
+        console.print("[blue]Using cached analysis results[/blue]")
+        return cached_analysis, []
+    elif len(stages_to_analyze) < len(enabled_stages):
+        console.print(
+            f"[blue]Using cached results for {len(enabled_stages) - len(stages_to_analyze)} "
+            f"stage(s), analyzing {len(stages_to_analyze)} stage(s)[/blue]"
+        )
+
+    return cached_analysis, stages_to_analyze
+
+
+def _find_and_validate_images(input_directory: Path) -> list[Path]:
+    """Find and validate images in the input directory.
+
+    Args:
+        input_directory: Directory to scan for images.
+
+    Returns:
+        List of image paths found.
+    """
+    console.print(f"[blue]Scanning for images in:[/blue] {input_directory}")
+    image_paths = list(find_images(input_directory))
+
+    if not image_paths:
+        console.print("[yellow]No images found in directory[/yellow]")
+    else:
+        console.print(f"[green]Found {len(image_paths)} images[/green]")
+
+    return image_paths
+
+
+def _process_images(
+    image_paths: list[Path], stages_to_analyze: list[AnalysisStage]
+) -> list[ImageAnalysis]:
+    """Process all images through the analysis pipeline.
+
+    Args:
+        image_paths: List of image paths to analyze.
+        stages_to_analyze: List of stages to run analysis for.
+
+    Returns:
+        List of analyzed images.
+    """
+    analyzed_images: list[ImageAnalysis] = []
+
+    # Precompute stage config map for efficiency
+    stage_configs_for_analysis = get_enabled_stage_configs(stages_to_analyze)
+    stage_config_map = {config.stage: config for config in stage_configs_for_analysis}
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeRemainingColumn(),
+        console=console,
+    ) as progress:
+        task = progress.add_task("Analyzing images...", total=len(image_paths))
+
+        for idx, image_path in enumerate(image_paths, 1):
+            progress.update(
+                task,
+                description=f"Analyzing {image_path.name} ({idx}/{len(image_paths)})",
+                completed=idx - 1,
+            )
+
+            image_analysis = analyze_image(
+                image_path, stages_to_analyze, stage_config_map
+            )
+            analyzed_images.append(image_analysis)
+
+            progress.update(task, completed=idx)
+
+    # Post-process deduplication if it was enabled
+    if AnalysisStage.DEDUPLICATION in stages_to_analyze:
+        analyzed_images = post_process_deduplication(
+            analyzed_images, stage_configs_for_analysis
+        )
+
+    return analyzed_images
+
+
+def _create_final_analysis(
+    input_directory: Path,
+    enabled_stages: list[AnalysisStage],
+    stages_to_analyze: list[AnalysisStage],
+    analyzed_images: list[ImageAnalysis],
+    cached_analysis: DirectoryAnalysis | None,
+) -> DirectoryAnalysis:
+    """Create and finalize the analysis result.
+
+    Args:
+        input_directory: Directory that was analyzed.
+        enabled_stages: All enabled analysis stages.
+        stages_to_analyze: Stages that were actually analyzed.
+        analyzed_images: Results of image analysis.
+        cached_analysis: Previously cached analysis (if any).
+
+    Returns:
+        Final DirectoryAnalysis result.
+    """
+    # Get stage configs for the stages that were analyzed
+    stage_configs_for_analysis = get_enabled_stage_configs(stages_to_analyze)
+
+    # Create new analysis with only the stages that were analyzed
+    new_analysis = DirectoryAnalysis(
+        input_directory=str(input_directory.resolve()),
+        analysis_time=datetime.now(),
+        enabled_stages=enabled_stages,
+        stage_configs=stage_configs_for_analysis,
+        images=analyzed_images,
+    )
+
+    # Merge with cached results if they exist
+    if cached_analysis:
+        final_analysis = merge_analysis_results(cached_analysis, new_analysis)
+    else:
+        final_analysis = new_analysis
+
+    # Save merged results to cache
+    save_analysis_cache(final_analysis)
+
+    return final_analysis
 
 
 def analyze_directory(
@@ -88,42 +295,27 @@ def analyze_directory(
         NotADirectoryError: If input path is not a directory.
     """
     # Determine enabled stages
-    enabled_stages: list[AnalysisStage] = []
-    if enable_deduplication:
-        enabled_stages.append(AnalysisStage.DEDUPLICATION)
-    if enable_quality:
-        enabled_stages.append(AnalysisStage.QUALITY)
-    if enable_face:
-        enabled_stages.append(AnalysisStage.FACE)
+    enabled_stages = _determine_enabled_stages(
+        enable_deduplication, enable_quality, enable_face
+    )
 
     # Get stage configurations for enabled stages
     stage_configs = get_enabled_stage_configs(enabled_stages)
 
-    # Determine which stages need analysis based on intelligent cache validation
-    cached_analysis = None
-    stages_to_analyze: list[AnalysisStage] = enabled_stages
+    # Handle cache logic and determine stages to analyze
+    cached_analysis, stages_to_analyze = _handle_cache_logic(
+        input_directory, enabled_stages, stage_configs, use_cache
+    )
 
-    if use_cache:
-        cached_analysis = load_analysis_cache(input_directory)
-        stages_to_analyze = get_stages_needing_analysis(
-            cached_analysis, enabled_stages, stage_configs, input_directory
-        )
+    # Early return if using fully cached results
+    if not stages_to_analyze and cached_analysis:
+        return cached_analysis
 
-        if not stages_to_analyze and cached_analysis:
-            console.print("[blue]Using cached analysis results[/blue]")
-            return cached_analysis
-        elif len(stages_to_analyze) < len(enabled_stages):
-            console.print(
-                f"[blue]Using cached results for {len(enabled_stages) - len(stages_to_analyze)} "
-                f"stage(s), analyzing {len(stages_to_analyze)} stage(s)[/blue]"
-            )
+    # Find and validate images
+    image_paths = _find_and_validate_images(input_directory)
 
-    # Find all images
-    console.print(f"[blue]Scanning for images in:[/blue] {input_directory}")
-    image_paths = list(find_images(input_directory))
-
+    # Handle empty directory case
     if not image_paths:
-        console.print("[yellow]No images found in directory[/yellow]")
         return DirectoryAnalysis(
             input_directory=str(input_directory.resolve()),
             analysis_time=datetime.now(),
@@ -132,70 +324,37 @@ def analyze_directory(
             images=[],
         )
 
-    console.print(f"[green]Found {len(image_paths)} images[/green]")
+    # Process images through analysis pipeline
+    analyzed_images = _process_images(image_paths, stages_to_analyze)
 
-    # Analyze each image
-    analyzed_images: list[ImageAnalysis] = []
-
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        BarColumn(),
-        MofNCompleteColumn(),
-        TimeRemainingColumn(),
-        console=console,
-    ) as progress:
-        task = progress.add_task("Analyzing images...", total=len(image_paths))
-
-        for idx, image_path in enumerate(image_paths, 1):
-            progress.update(
-                task,
-                description=f"Analyzing {image_path.name} ({idx}/{len(image_paths)})",
-                completed=idx - 1,
-            )
-
-            image_analysis = analyze_image(image_path, stages_to_analyze)
-            analyzed_images.append(image_analysis)
-
-            progress.update(task, completed=idx)
-
-    # Post-process deduplication if it was enabled
-    if AnalysisStage.DEDUPLICATION in stages_to_analyze:
-        analyzed_images = post_process_deduplication(analyzed_images, stage_configs)
-
-    # Create new analysis with only the stages that were analyzed
-    new_analysis = DirectoryAnalysis(
-        input_directory=str(input_directory.resolve()),
-        analysis_time=datetime.now(),
-        enabled_stages=enabled_stages,
-        stage_configs=stage_configs,
-        images=analyzed_images,
+    # Create and return final analysis result
+    return _create_final_analysis(
+        input_directory,
+        enabled_stages,
+        stages_to_analyze,
+        analyzed_images,
+        cached_analysis,
     )
-
-    # Merge with cached results if they exist
-    if cached_analysis:
-        final_analysis = merge_analysis_results(cached_analysis, new_analysis)
-    else:
-        final_analysis = new_analysis
-
-    # Save merged results to cache
-    save_analysis_cache(final_analysis)
-
-    return final_analysis
 
 
 def analyze_image(
-    image_path: Path, enabled_stages: list[AnalysisStage]
+    image_path: Path,
+    enabled_stages: list[AnalysisStage],
+    stage_config_map: dict[AnalysisStage, StageConfig] | None = None,
 ) -> ImageAnalysis:
     """Analyze a single image file.
 
     Args:
         image_path: Path to the image file.
         enabled_stages: List of analysis stages to run.
+        stage_config_map: Pre-computed map of stage configs (optional, will compute if not provided).
 
     Returns:
         Analysis results for the image.
     """
+    # Initialize stage analyzers if needed
+    _initialize_stage_analyzers()
+
     # Get file metadata
     stat = image_path.stat()
     file_size = stat.st_size
@@ -204,19 +363,18 @@ def analyze_image(
     # Run each enabled stage
     stage_results: list[StageResult] = []
 
-    # Get stage configs for this analysis
-    stage_configs = get_enabled_stage_configs(enabled_stages)
-    stage_config_map = {config.stage: config for config in stage_configs}
+    # Get stage config map if not provided
+    if stage_config_map is None:
+        stage_configs = get_enabled_stage_configs(enabled_stages)
+        stage_config_map = {config.stage: config for config in stage_configs}
 
     for stage in enabled_stages:
         stage_config = stage_config_map.get(stage)
 
-        if stage == AnalysisStage.DEDUPLICATION:
-            result = analyze_deduplication(image_path, stage_config)
-        elif stage == AnalysisStage.QUALITY:
-            result = analyze_quality(image_path, stage_config)
-        elif stage == AnalysisStage.FACE:
-            result = analyze_face(image_path, stage_config)
+        # Use dispatch table to call the appropriate analyzer function
+        if stage in _stage_analyzers:
+            analyzer_func = _stage_analyzers[stage]
+            result = analyzer_func(image_path, stage_config)
         else:
             # Unknown stage, skip
             result = StageResult(
@@ -509,10 +667,9 @@ def analyze_face(
         else:
             device = device_setting
 
-        # Load YOLO11 model for person detection
+        # Get or create cached YOLO11 model for person detection
         models_dir = get_models_dir()
-        model_path = models_dir / model_name
-        model = YOLO(str(model_path))
+        model = get_cached_yolo_model(model_name, models_dir)
 
         # Run inference on the image with optimized parameters
         results: Any = model(  # pyright: ignore[reportUnknownVariableType]

@@ -85,41 +85,56 @@ def analyze_command(
         raise typer.Exit(1) from e
 
 
-def _display_analysis_summary(analysis: DirectoryAnalysis) -> None:
-    """Display detailed analysis results for all images.
+def _create_results_table(analysis: DirectoryAnalysis) -> Table:
+    """Create and configure the results table with appropriate columns.
 
     Args:
-        analysis: DirectoryAnalysis results to display.
+        analysis: DirectoryAnalysis containing enabled stages info.
+
+    Returns:
+        Configured Rich Table with appropriate columns.
     """
-    console.print("\n[bold green]Analysis Complete![/bold green]")
-
-    # Show enabled stages
-    if analysis.enabled_stages:
-        stages_str = ", ".join([stage.value for stage in analysis.enabled_stages])
-        console.print(f"[blue]Stages analyzed:[/blue] {stages_str}")
-
-    # Create detailed results table
     table = Table(title="Image Analysis Results")
     table.add_column("Image", style="cyan", width=25)
     table.add_column("Overall", justify="center", width=8)
 
     # Add a column for each enabled stage with appropriate widths
     for stage in analysis.enabled_stages:
-        if stage == AnalysisStage.DEDUPLICATION:
-            width = 18  # For "DUP:filename(dist)" or hash
-            table.add_column(stage.value.title(), justify="center", width=width)
-        elif stage == AnalysisStage.QUALITY:
-            # Add separate columns for each quality metric
-            table.add_column("Sharpness", justify="center", width=8, style="bold")
-            table.add_column("Brightness", justify="center", width=10, style="bold")
-            table.add_column("Contrast", justify="center", width=8, style="bold")
-        elif stage == AnalysisStage.FACE:
-            width = 12  # For "X people" or "none"
-            table.add_column(stage.value.title(), justify="center", width=width)
-        else:
-            width = 12  # Default
-            table.add_column(stage.value.title(), justify="center", width=width)
+        _add_stage_columns(table, stage)
 
+    return table
+
+
+def _add_stage_columns(table: Table, stage: AnalysisStage) -> None:
+    """Add columns for a specific analysis stage.
+
+    Args:
+        table: Table to add columns to.
+        stage: Analysis stage to add columns for.
+    """
+    if stage == AnalysisStage.DEDUPLICATION:
+        width = 18  # For "DUP:filename(dist)" or hash
+        table.add_column(stage.value.title(), justify="center", width=width)
+    elif stage == AnalysisStage.QUALITY:
+        # Add separate columns for each quality metric
+        table.add_column("Sharpness", justify="center", width=8, style="bold")
+        table.add_column("Brightness", justify="center", width=10, style="bold")
+        table.add_column("Contrast", justify="center", width=8, style="bold")
+    elif stage == AnalysisStage.FACE:
+        width = 12  # For "X people" or "none"
+        table.add_column(stage.value.title(), justify="center", width=width)
+    else:
+        width = 12  # Default
+        table.add_column(stage.value.title(), justify="center", width=width)
+
+
+def _populate_results_table(table: Table, analysis: DirectoryAnalysis) -> None:
+    """Populate the results table with image analysis data.
+
+    Args:
+        table: Table to populate.
+        analysis: DirectoryAnalysis containing results to display.
+    """
     # Sort images by filename for consistent output
     sorted_images = sorted(
         analysis.images, key=lambda img: Path(img.file_path).name.lower()
@@ -136,42 +151,78 @@ def _display_analysis_summary(analysis: DirectoryAnalysis) -> None:
         stage_results_map = {result.stage: result for result in image.stage_results}
 
         for stage in analysis.enabled_stages:
-            if stage in stage_results_map:
-                result = stage_results_map[stage]
-                if stage == AnalysisStage.QUALITY:
-                    # Add separate columns for quality metrics
-                    # Get quality stage config
-                    quality_config = None
-                    for config in analysis.stage_configs:
-                        if config.stage == AnalysisStage.QUALITY:
-                            quality_config = config
-                            break
-                    sharpness, brightness, contrast = _format_quality_metrics(
-                        result, quality_config
-                    )
-                    row_data.extend([sharpness, brightness, contrast])
-                else:
-                    row_data.append(_format_stage_result(result))
-            else:
-                if stage == AnalysisStage.QUALITY:
-                    # Add N/A for all three quality columns
-                    row_data.extend(
-                        ["[dim]N/A[/dim]", "[dim]N/A[/dim]", "[dim]N/A[/dim]"]
-                    )
-                else:
-                    row_data.append("[dim]N/A[/dim]")
+            _add_stage_data(row_data, stage, stage_results_map, analysis)
 
         table.add_row(*row_data)
 
-    console.print(table)
 
-    # Show summary counts
+def _add_stage_data(
+    row_data: list[str],
+    stage: AnalysisStage,
+    stage_results_map: dict[AnalysisStage, StageResult],
+    analysis: DirectoryAnalysis,
+) -> None:
+    """Add stage-specific data to a table row.
+
+    Args:
+        row_data: List to append stage data to.
+        stage: Analysis stage to add data for.
+        stage_results_map: Map of stage results for current image.
+        analysis: DirectoryAnalysis containing stage configs.
+    """
+    if stage in stage_results_map:
+        result = stage_results_map[stage]
+        if stage == AnalysisStage.QUALITY:
+            # Add separate columns for quality metrics using DirectoryAnalysis helper
+            quality_config = analysis.get_stage_config(AnalysisStage.QUALITY)
+            sharpness, brightness, contrast = _format_quality_metrics(
+                result, quality_config
+            )
+            row_data.extend([sharpness, brightness, contrast])
+        else:
+            row_data.append(_format_stage_result(result))
+    else:
+        if stage == AnalysisStage.QUALITY:
+            # Add N/A for all three quality columns
+            row_data.extend(["[dim]N/A[/dim]", "[dim]N/A[/dim]", "[dim]N/A[/dim]"])
+        else:
+            row_data.append("[dim]N/A[/dim]")
+
+
+def _display_summary_stats(analysis: DirectoryAnalysis) -> None:
+    """Display summary statistics for the analysis.
+
+    Args:
+        analysis: DirectoryAnalysis to display stats for.
+    """
     console.print(f"\n[bold]Summary:[/bold] {analysis.total_images} images analyzed")
     console.print(f"✅ [green]{len(analysis.passed_images)} passed all stages[/green]")
     console.print(
         f"❌ [red]{len(analysis.failed_images)} failed at least one stage[/red]"
     )
     console.print(f"⏭️  [yellow]{len(analysis.skipped_images)} skipped[/yellow]")
+
+
+def _display_analysis_summary(analysis: DirectoryAnalysis) -> None:
+    """Display detailed analysis results for all images.
+
+    Args:
+        analysis: DirectoryAnalysis results to display.
+    """
+    console.print("\n[bold green]Analysis Complete![/bold green]")
+
+    # Show enabled stages
+    if analysis.enabled_stages:
+        stages_str = ", ".join([stage.value for stage in analysis.enabled_stages])
+        console.print(f"[blue]Stages analyzed:[/blue] {stages_str}")
+
+    # Create and populate results table
+    table = _create_results_table(analysis)
+    _populate_results_table(table, analysis)
+    console.print(table)
+
+    # Show summary statistics
+    _display_summary_stats(analysis)
 
     # Show cache info
     console.print("\n[dim]Results cached for future runs[/dim]")

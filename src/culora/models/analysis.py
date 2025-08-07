@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AnalysisStage(str, Enum):
@@ -27,7 +27,7 @@ class StageConfig(BaseModel):
     """Configuration for a specific analysis stage."""
 
     stage: AnalysisStage
-    config: dict[str, Any] = {}
+    config: dict[str, Any] = Field(default_factory=dict)
     version: str = "1.0"
 
     def __hash__(self) -> int:
@@ -43,7 +43,7 @@ class StageResult(BaseModel):
     stage: AnalysisStage
     result: AnalysisResult
     reason: str | None = None
-    metadata: dict[str, str] = {}
+    metadata: dict[str, str] = Field(default_factory=dict)
 
 
 class ImageAnalysis(BaseModel):
@@ -52,7 +52,7 @@ class ImageAnalysis(BaseModel):
     file_path: str
     file_size: int
     modified_time: datetime
-    stage_results: list[StageResult] = []
+    stage_results: list[StageResult] = Field(default_factory=lambda: [])
 
     @property
     def passed_stages(self) -> list[AnalysisStage]:
@@ -90,8 +90,8 @@ class DirectoryAnalysis(BaseModel):
     input_directory: str
     analysis_time: datetime
     enabled_stages: list[AnalysisStage]
-    stage_configs: list[StageConfig] = []
-    images: list[ImageAnalysis] = []
+    stage_configs: list[StageConfig] = Field(default_factory=lambda: [])
+    images: list[ImageAnalysis] = Field(default_factory=lambda: [])
 
     @property
     def total_images(self) -> int:
