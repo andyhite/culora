@@ -18,6 +18,7 @@ ruff = "^0.12.7"
 pyright = "^1.1.380"
 pytest = "^8.2.2"
 pytest-cov = "^6.2.1"
+pre-commit = "^4.2.0"
 
 [tool.poetry.scripts]
 culora = "culora.cli.main:app"
