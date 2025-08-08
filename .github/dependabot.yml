@@ -39,6 +39,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "torchvision"
         update-types: ["version-update:semver-major"]
+      # Packages that must stay at specific versions
+      - dependency-name: "rich"
+        update-types: ["version-update:semver-major"]
 
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"

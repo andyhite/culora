@@ -1,0 +1,21 @@
+# Global ownership - Andrew Hite owns everything by default
+* @andyhite
+
+# Critical files require explicit approval
+/LICENSE @andyhite
+/pyproject.toml @andyhite
+/CLAUDE.md @andyhite
+/README.md @andyhite
+
+# CI/CD and GitHub configuration
+/.github/ @andyhite
+/Makefile @andyhite
+
+# Core analysis pipeline (requires extra scrutiny)
+/src/culora/orchestrators/ @andyhite
+/src/culora/services/ @andyhite
+/src/culora/models/ @andyhite
+
+# Documentation and guides
+/docs/ @andyhite
+/prompts/ @andyhite
