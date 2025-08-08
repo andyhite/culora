@@ -1,10 +1,10 @@
 """Main CLI application for CuLoRA."""
 
 import typer
-from rich.console import Console
 
 from culora import __version__
-from culora.cli import analyze, select
+from culora.commands import analyze
+from culora.utils.console import get_console
 
 app = typer.Typer(
     name="culora",
@@ -12,7 +12,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 
-console = Console()
+console = get_console()
 
 
 @app.callback()
@@ -23,11 +23,10 @@ def main() -> None:
 @app.command()
 def version() -> None:
     """Show version information."""
-    console.print(f"CuLoRA version: {__version__}")
+    console.info(f"CuLoRA version: {__version__}")
 
 
 analyze.register_command(app)
-select.register_command(app)
 
 if __name__ == "__main__":
     app()

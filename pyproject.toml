@@ -26,7 +26,7 @@ pytest-cov = "^6.2.1"
 pre-commit = "^4.2.0"
 
 [tool.poetry.scripts]
-culora = "culora.cli.main:app"
+culora = "culora.main:app"
 
 [build-system]
 requires = ["poetry-core"]

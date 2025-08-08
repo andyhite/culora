@@ -2,7 +2,7 @@
 
 from typer.testing import CliRunner
 
-from culora.cli.main import app
+from culora.main import app
 
 
 def test_version_command():

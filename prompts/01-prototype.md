@@ -50,11 +50,11 @@
 
 ## Epic 4: Intelligent Image Selection
 
-- **US4.1:** As a user, I want only images that passed all *enabled* analysis stages to be copied to my output directory.
-- **US4.2:** As a user, I want the selected images to be renamed/numbered sequentially, making them training-ready.
-- **US4.3:** As a user, I want to see a summary table after selection, including counts by reason for selection or skipping.
-- **US4.4:** As a user, I want to run with a `--dry-run` flag to preview the output without actually copying files.
-- **US4.5:** As a developer, I want selection logic to always respect the set of analysis stages enabled at analysis time, so behavior is always predictable.
+- ~~**US4.1:** As a user, I want only images that passed all *enabled* analysis stages to be copied to my output directory.~~
+- ~~**US4.2:** As a user, I want the selected images to be renamed/numbered sequentially, making them training-ready.~~
+- ~~**US4.3:** As a user, I want to see a summary table after selection, including counts by reason for selection or skipping.~~
+- ~~**US4.4:** As a user, I want to run with a `--dry-run` flag to preview the output without actually copying files.~~
+- ~~**US4.5:** As a developer, I want selection logic to always respect the set of analysis stages enabled at analysis time, so behavior is always predictable.~~
 
 ---
 
