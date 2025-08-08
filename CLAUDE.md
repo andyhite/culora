@@ -1,7 +1,7 @@
 # CuLoRA - Agent Memory & Development Guidelines
 
 **Purpose:**
-CuLoRA is a command-line tool for intelligently curating image datasets for LoRA training. It combines deduplication, image quality assessment, and face detection to automatically select the best images from large datasets. All features must be exposed via the CLI. The analysis pipeline is modular—each stage (deduplication, quality, face) is enabled by default but can be toggled off via CLI flags.
+CuLoRA is a command-line tool for intelligently curating image datasets for LoRA training. It combines deduplication, image quality assessment, and face detection to automatically select the best images from large datasets using a sophisticated two-tier selection system with composite scoring. All features are exposed via the CLI. The analysis pipeline is modular—each stage (deduplication, quality, face) is enabled by default but can be toggled off via CLI flags.
 
 ---
 
@@ -67,11 +67,17 @@ CuLoRA is a command-line tool for intelligently curating image datasets for LoRA
 
 ## Analysis Pipeline Requirements
 
-- Analysis pipeline stages (deduplication, quality, face detection) must run in order, with each stage only processing images that passed the prior stage.
+- Analysis pipeline stages (deduplication, quality, face detection) run independently on all images.
 - Each stage is enabled by default, with individual CLI flags to disable (`--no-dedupe`, `--no-quality`, `--no-face`).
 - Pipeline must auto-detect and use the best available device for acceleration.
 - All results must be saved in a single JSON file per analyzed directory.
-- Output must always show which stages were enabled, the results of each, and any images skipped with reasons.
+- Output must always show which stages were enabled, detailed per-image results, and composite scores.
+- Two-tier selection system: Tier 1 applies minimum thresholds (culling), Tier 2 ranks by composite score.
+- Composite scoring combines quality (50%) and face metrics (50%) with intelligent weighting.
+- Face scoring uses relative face-to-image area ratios with sigmoid curves for optimal sizing (5-25% range, peak at 15%).
+- Face confidence acts as multiplier, multi-face penalties apply (10% per additional face, max 50%).
+- All scores are clamped to [0.0, 1.0] range for consistent ranking.
+- Support `--max-images` parameter to select top N images by composite score.
 
 ---
 
@@ -106,11 +112,33 @@ CuLoRA is a command-line tool for intelligently curating image datasets for LoRA
 
 ## Known Issues & Workarounds
 
-- **MediaPipe Messages**: Face detection outputs minimal technical messages from MediaPipe/TensorFlow (typically 2 lines total). These are harmless and indicate proper GPU/CPU initialization. For completely clean output:
+- **YOLO11 Messages**: Face detection may output minimal technical messages from YOLO/TensorFlow during model initialization. These are harmless and indicate proper GPU/CPU setup. For completely clean output:
 
   ```bash
   culora analyze <input_dir> 2>/dev/null
   ```
+
+## Current Implementation Status
+
+### Completed Features (Production Ready)
+
+- ✅ **Multi-stage Analysis Pipeline**: Deduplication, quality assessment, and face detection
+- ✅ **Two-tier Selection System**: Threshold culling + score-based ranking  
+- ✅ **Composite Scoring Algorithm**: Sophisticated scoring with relative face sizing
+- ✅ **CLI Integration**: Complete `analyze` command with all options
+- ✅ **Rich Output**: Progress bars, detailed results tables, and colored scoring
+- ✅ **Device Acceleration**: Automatic CUDA/MPS/CPU detection and optimization
+- ✅ **Caching System**: Per-directory JSON cache for analysis results
+- ✅ **Face Bounding Boxes**: Draw detection boxes with confidence scores
+- ✅ **Dry Run Mode**: Preview selection without file operations
+- ✅ **Max Images Limiting**: Select top N images by composite score
+
+### Key Technical Decisions
+
+- **Face Detection**: Switched to YOLO11 specialized face model (AdamCodd/YOLOv11n-face-detection) for superior accuracy vs general person detection
+- **Scoring Algorithm**: Rebalanced to 50%/50% quality/face weights with sophisticated face area scoring using sigmoid curves
+- **Selection Architecture**: Two-tier system separates threshold culling from ranking for optimal results
+- **Progress UI**: Transient progress bars with integrated directory info for clean output
 
 ---
 
